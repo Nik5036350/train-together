@@ -1,0 +1,92 @@
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #0f1115;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+}
+
+input {
+  font-family: inherit;
+}
+
+/* Tabular numerals for any value that must stay aligned (timers, weights, reps). */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Inline-centered icon wrapper — matches the design's .ico helper. */
+.ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hide scrollbars inside the phone frame while keeping scroll behaviour. */
+.scroll-area {
+  overflow: auto;
+  scrollbar-width: none;
+}
+.scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Keep list items at their natural height so the scroll area actually scrolls.
+ * Without this, flex items with `overflow:hidden` (e.g. rounded cards) get an
+ * automatic min-size of 0 and collapse to nothing when content overflows a
+ * column flex container, instead of the container scrolling. Children that opt
+ * into flexing (inline `flex: 1`) override this and still grow/shrink.
+ */
+.scroll-area > * {
+  flex-shrink: 0;
+}
+
+@keyframes snackbar-in {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
