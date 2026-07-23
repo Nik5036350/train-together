@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 # NOTE: GitHub Pages serves the frontend only (static hosting). The app now
-# requires the Spring Boot backend to be reachable at VITE_API_URL; the deployed
+# requires the backend to be reachable at VITE_API_URL; the deployed
 # Pages site will not function without a separately hosted backend.
 
 jobs:

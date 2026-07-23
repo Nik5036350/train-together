@@ -7,7 +7,7 @@ browser-only PWA; now a full-stack app.
 
 ```
 frontend/   React + Vite PWA (the original app, now talking to the backend over REST)
-backend/    Spring Boot + Kotlin REST API, data stored in SQLite
+backend/    Rust (axum + SeaORM) REST API, data stored in SQLite
 ```
 
 ## Running locally
@@ -18,7 +18,7 @@ Two processes. Start the backend first, then the frontend.
 
 ```bash
 cd backend
-./gradlew bootRun
+cargo run          # or: cargo test
 ```
 
 The SQLite database is created at `backend/data/couples.db` on first run and
@@ -37,8 +37,9 @@ Override the API base with `VITE_API_URL` if the backend runs elsewhere.
 
 ## Running with Docker (single container)
 
-One image builds the frontend, bakes it into the Spring Boot jar, and serves both
-the UI and the API from port 8080:
+One image builds the frontend, embeds it into a static Rust binary, and serves
+both the UI and the API from port 8080. The final image runs `FROM scratch` and
+is only ~6 MB:
 
 ```bash
 docker build -t couples .

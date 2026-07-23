@@ -1,6 +1,7 @@
-# Single-image build: the Spring Boot backend serves the compiled frontend.
-# Stage 1 builds the React/Vite app, stage 2 bundles it into the Spring Boot fat
-# jar, stage 3 runs the jar on a slim JRE.
+# Single-image build: the Rust backend serves the compiled frontend (embedded in
+# the binary). Stage 1 builds the React/Vite app, stage 2 builds a static musl
+# binary with the frontend baked in, stage 3 is an empty `scratch` image holding
+# just that binary (~20 MB total).
 
 # ---- Stage 1: build the frontend ----
 FROM node:20-alpine AS web
@@ -8,29 +9,29 @@ WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
-# Serve at root (not the GitHub Pages subpath) since Spring Boot hosts it at /.
+# Serve at root (not the GitHub Pages subpath) since the backend hosts it at /.
 ENV VITE_BASE=/
 RUN npm run build
 
-# ---- Stage 2: build the backend jar (with the frontend baked into static) ----
-# Debian-based (glibc) so the bundled sqlite-jdbc native library loads.
-FROM eclipse-temurin:21-jdk AS api
-WORKDIR /api
-# Warm the Gradle dependency cache on its own layer for faster rebuilds.
-COPY backend/gradlew backend/settings.gradle.kts backend/build.gradle.kts ./
-COPY backend/gradle ./gradle
-RUN chmod +x gradlew && ./gradlew --no-daemon dependencies > /dev/null 2>&1 || true
-COPY backend/ ./
-# Spring Boot serves classpath:/static/** — drop the built SPA there.
-COPY --from=web /web/dist/ src/main/resources/static/
-RUN ./gradlew --no-daemon bootJar -x test
+# ---- Stage 2: build the static Rust binary ----
+# rust:alpine targets x86_64-unknown-linux-musl by default -> fully static binary.
+# build-base provides the C toolchain sqlx's bundled SQLite needs.
+FROM rust:1-alpine AS builder
+RUN apk add --no-cache build-base
+WORKDIR /app
+COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY backend/src ./src
+# Embed the built frontend into the binary (rust-embed reads ./static at compile time).
+COPY --from=web /web/dist/ ./static/
+RUN cargo build --release
 
 # ---- Stage 3: runtime ----
-FROM eclipse-temurin:21-jre AS runtime
+FROM scratch AS runtime
 WORKDIR /app
-COPY --from=api /api/build/libs/*.jar /app/app.jar
+COPY --from=builder /app/target/release/couples-recording /couples-recording
 # SQLite DB lives at /app/data/couples.db (created on boot). Mount a volume here
 # to persist workout data across container recreation.
+ENV TMPDIR=/app/data
 VOLUME ["/app/data"]
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["/couples-recording"]

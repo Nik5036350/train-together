@@ -1,0 +1,3 @@
+# The built frontend is copied here during the Docker build and embedded into the
+# binary via rust-embed. This placeholder keeps the folder present so local
+# `cargo build` (without a frontend build) still compiles.

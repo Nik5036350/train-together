@@ -3,7 +3,7 @@
 **/node_modules
 **/dist
 frontend/dev-dist
-backend/build
-backend/.gradle
+backend/target
 backend/data
+backend/static/*
 **/*.db

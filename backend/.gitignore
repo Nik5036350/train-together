@@ -1,0 +1,6 @@
+/target
+/data
+# Built frontend assets are embedded during the Docker build; keep only the
+# placeholder so the folder exists for local compiles.
+/static/*
+!/static/.gitkeep

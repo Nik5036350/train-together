@@ -1,12 +1,12 @@
 # Host This App on GitHub Pages
 
-> **⚠️ Backend required.** The app now stores all data in a Spring Boot + SQLite
+> **⚠️ Backend required.** The app now stores all data in a Rust + SQLite
 > backend (see `../backend`). GitHub Pages hosts only the static frontend, so the
 > Pages deployment will not function unless the backend is hosted separately and
 > reachable at `VITE_API_URL`. Backend hosting is out of scope for this guide.
 >
 > For a single deployable artifact instead, use the root `Dockerfile`: it builds
-> this frontend and serves it directly from the Spring Boot backend (one
+> this frontend and serves it directly from the Rust backend (one
 > container, port 8080). See the "Running with Docker" section in the root
 > `README.md`.
 

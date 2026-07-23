@@ -1,8 +1,8 @@
-# Backend (Gradle / Spring Boot)
-backend/.gradle/
-backend/build/
+# Backend (Rust)
+backend/target/
 backend/data/
-backend/*.db
+backend/static/*
+!backend/static/.gitkeep
 
 # Misc
 .DS_Store
