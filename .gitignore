@@ -1,5 +1,9 @@
-node_modules
-dist
-dist-ssr
-*.local
+# Backend (Gradle / Spring Boot)
+backend/.gradle/
+backend/build/
+backend/data/
+backend/*.db
+
+# Misc
 .DS_Store
+*.local

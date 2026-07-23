@@ -1,0 +1,12 @@
+# Convenience wrapper: builds the single image and runs it with a persistent
+# volume for the SQLite database.
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - couples-data:/app/data
+
+volumes:
+  couples-data:

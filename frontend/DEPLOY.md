@@ -1,6 +1,16 @@
 # Host This App on GitHub Pages
 
-This repo is a Vite + React static app. It does not need a backend server: `npm run build`
+> **⚠️ Backend required.** The app now stores all data in a Spring Boot + SQLite
+> backend (see `../backend`). GitHub Pages hosts only the static frontend, so the
+> Pages deployment will not function unless the backend is hosted separately and
+> reachable at `VITE_API_URL`. Backend hosting is out of scope for this guide.
+>
+> For a single deployable artifact instead, use the root `Dockerfile`: it builds
+> this frontend and serves it directly from the Spring Boot backend (one
+> container, port 8080). See the "Running with Docker" section in the root
+> `README.md`.
+
+This section covers hosting the **frontend** as a Vite + React static app: `npm run build`
 creates a deployable `dist/` folder, and GitHub Pages can host that folder with a
 GitHub Actions workflow.
 

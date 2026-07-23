@@ -1,0 +1,9 @@
+# Keep the build context small and avoid leaking local build output / DBs.
+.git
+**/node_modules
+**/dist
+frontend/dev-dist
+backend/build
+backend/.gradle
+backend/data
+**/*.db

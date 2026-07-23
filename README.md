@@ -1,55 +1,63 @@
 # Couples Recording Mode
 
-A strength-workout logger built for **two people training on one phone** — one shared
-session, two completely separate histories. Implements the "Couples Recording Mode" PRD
-and the Claude Design handoff mockups.
+A strength workout logger for two people sharing one phone. Originally a
+browser-only PWA; now a full-stack app.
 
-Owner = **Alex** (blue), Partner = **Maria** (orange).
+## Layout
 
-## Run
+```
+frontend/   React + Vite PWA (the original app, now talking to the backend over REST)
+backend/    Spring Boot + Kotlin REST API, data stored in SQLite
+```
+
+## Running locally
+
+Two processes. Start the backend first, then the frontend.
+
+### Backend (port 8080)
 
 ```bash
-cd web
-npm install
-npm run dev      # open the printed localhost URL
+cd backend
+./gradlew bootRun
 ```
 
-`npm run build` produces a production bundle in `dist/`.
+The SQLite database is created at `backend/data/couples.db` on first run and
+seeded with the demo couple (Alex & Maria) and a "Push Day" routine.
 
-On a desktop browser the app renders inside an iOS device frame; on a phone-width
-viewport it goes full-screen.
+### Frontend (port 5173)
 
-## What's implemented
-
-- **Setup** — partner profile, exercise creation (shared details + per-person rest/setup),
-  routine builder with per-exercise assignment (Owner / Partner / Both).
-- **Live session** — start sheet (participants + logging style), live overview with
-  per-person set counts and rest-timer state, skip / substitute markers, add-exercise.
-- **Logging card (the core)** — dual-row logging with three modes:
-  - **Alternate** — both rows live, active row passes after each log.
-  - **Turns** — one row at a time; the other collapses to a waiting state.
-  - **Independent** — never switches automatically.
-  - Per-person "Log for …", Repeat, per-person rest timers (Resting → Ready → Overdue),
-    undo snackbar, notes, skip, substitute.
-- **Summary** — shared metrics + separate per-person totals (sets, volume).
-- **Persistence** — the whole store is saved to `localStorage`, so an in-progress
-  session (and its active row / inputs) survives a reload.
-
-## Architecture
-
-```
-src/
-  theme.js            design tokens (colors, fonts) from the mockups
-  store/              Context + reducer + seed + localStorage
-  lib/                selectors, formatters, timer hook
-  components/         DeviceShell (iOS frame) + shared UI
-  screens/            the 8 screens
+```bash
+cd frontend
+npm install      # first time only
+npm run dev
 ```
 
-Data follows the PRD entity model: shared `ExerciseDefinition`s, per-person
-`PersonExerciseProfile`s, a `WorkoutTemplate` with assignments, and a live `session`
-where **every set record belongs to exactly one person** (invariant DI-01).
+The Vite dev server proxies `/api/*` to the backend at `http://localhost:8080`.
+Override the API base with `VITE_API_URL` if the backend runs elsewhere.
 
-The app seeds itself with Alex + Maria, a "Push Day" routine, and last week's history
-so it opens looking like the design on first launch. Reset to that seed any time by
-clearing site data / `localStorage`.
+## Running with Docker (single container)
+
+One image builds the frontend, bakes it into the Spring Boot jar, and serves both
+the UI and the API from port 8080:
+
+```bash
+docker build -t couples .
+docker run --rm -p 8080:8080 -v couples-data:/app/data couples
+```
+
+Then open <http://localhost:8080/>. The `-v couples-data:/app/data` volume keeps
+the SQLite database (`/app/data/couples.db`) across container restarts.
+
+Or with Compose:
+
+```bash
+docker compose up --build
+```
+
+## Notes
+
+- All workout data now lives in the backend database — there is no offline mode.
+- The GitHub Pages workflow deploys **only the frontend** (static hosting), which
+  requires a separately hosted backend to function. See `frontend/DEPLOY.md`.
+  The Docker image above is the single-artifact alternative — one container
+  serving both the UI and the API.

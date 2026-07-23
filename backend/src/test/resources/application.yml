@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    # Shared-cache in-memory SQLite; a single kept-alive connection keeps the
+    # schema/data alive for the duration of the test context.
+    url: jdbc:sqlite:file:testdb?mode=memory&cache=shared
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 1
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+    open-in-view: false
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173

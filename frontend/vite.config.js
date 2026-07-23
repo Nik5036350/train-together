@@ -4,7 +4,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/couples-recording-mode/',
+  // Served under a subpath on GitHub Pages, but at root when the Spring Boot
+  // backend serves the built assets (Docker). Override with VITE_BASE=/.
+  base: process.env.VITE_BASE || '/couples-recording-mode/',
+  server: {
+    // Proxy API calls to the Spring Boot backend during development.
+    proxy: {
+      '/api': 'http://localhost:8080',
+    },
+  },
   plugins: [
     react(),
     VitePWA({
