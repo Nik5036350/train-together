@@ -60,6 +60,7 @@ pub struct ExerciseResp {
     pub id: String,
     pub name: String,
     pub category: String,
+    #[serde(default)] // older backups (user-created exercises) omitted this
     pub equipment: String,
     pub tracks: TracksResp,
     pub default_rest_seconds: i32,
@@ -107,6 +108,7 @@ pub struct SessionExerciseResp {
     pub applies_to: Vec<String>,
     pub logging_mode: String,
     pub active_person_id: Option<String>,
+    #[serde(default)] // older backups omitted this
     pub added_during_session: Option<bool>,
     pub per_person: BTreeMap<String, PerPersonResp>,
 }
@@ -139,17 +141,38 @@ pub struct TimerResp {
 #[serde(rename_all = "camelCase")]
 pub struct SessionResp {
     pub id: String,
+    #[serde(default)]
     pub template_id: Option<String>,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub start_time: i64,
+    #[serde(default)]
     pub end_time: Option<i64>,
+    #[serde(default)]
     pub label: Option<String>,
+    #[serde(default)]
     pub participant_ids: Vec<String>,
+    // Older/minimal backup sessions may omit these; default sensibly so import
+    // stays tolerant. A history entry with no status is treated as finished.
+    #[serde(default = "default_logging_style")]
     pub logging_style: String,
+    #[serde(default = "default_finished")]
     pub status: String,
+    #[serde(default)]
     pub exercises: Vec<SessionExerciseResp>,
+    #[serde(default)]
     pub sets: Vec<SetResp>,
+    #[serde(default)]
     pub timers: BTreeMap<String, TimerResp>,
+}
+
+fn default_logging_style() -> String {
+    "alternate".to_string()
+}
+
+fn default_finished() -> String {
+    "finished".to_string()
 }
 
 // Reassemble the normalized tables into the single aggregate tree.
