@@ -55,6 +55,7 @@ export function ErrorBar({ error, onDismiss }) {
 const ACTION_LABELS = {
   START_SESSION: 'Starting the workout',
   FINISH_SESSION: 'Finishing the workout',
+  DELETE_WORKOUT: 'Deleting the workout',
   LOG_SET: 'Logging the set',
   UNDO_LAST: 'Undoing the set',
   HYDRATE: 'Importing the backup',

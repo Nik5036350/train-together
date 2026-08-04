@@ -1,16 +1,24 @@
+use crate::entities::*;
 use crate::{db, handlers, services};
 use axum::body::Body;
-use axum::http::Request;
+use axum::http::{Request, StatusCode};
 use axum::Router;
 use http_body_util::BodyExt;
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter};
 use serde_json::{json, Value};
 use tower::util::ServiceExt;
 
 async fn app() -> Router {
+    app_with_db().await.0
+}
+
+// Same harness, but hands back the connection so a test can assert on rows the
+// aggregate response doesn't expose (e.g. cascade deletes).
+async fn app_with_db() -> (Router, DatabaseConnection) {
     let db = db::connect("sqlite::memory:").await.unwrap();
     db::init_schema(&db).await.unwrap();
     services::seed::reset_to_seed(&db).await.unwrap();
-    handlers::router(db)
+    (handlers::router(db.clone()), db)
 }
 
 async fn call(app: &Router, method: &str, uri: &str, body: Option<Value>) -> Value {
@@ -32,6 +40,16 @@ async fn call(app: &Router, method: &str, uri: &str, body: Option<Value>) -> Val
     );
     let bytes = resp.into_body().collect().await.unwrap().to_bytes();
     serde_json::from_slice(&bytes).unwrap()
+}
+
+// `call` asserts 2xx; use this when the rejection itself is what's under test.
+async fn call_status(app: &Router, method: &str, uri: &str) -> StatusCode {
+    let req = Request::builder()
+        .method(method)
+        .uri(uri)
+        .body(Body::empty())
+        .unwrap();
+    app.clone().oneshot(req).await.unwrap().status()
 }
 
 #[tokio::test]
@@ -187,4 +205,109 @@ async fn finishing_moves_session_to_history() {
         .unwrap();
     assert_eq!(newest["status"], "finished");
     assert!(newest["endTime"].is_i64());
+}
+
+#[tokio::test]
+async fn deleting_a_finished_workout_removes_it_and_its_sets() {
+    let (app, db) = app_with_db().await;
+    let s = call(&app, "GET", "/api/state", None).await;
+    assert_eq!(s["history"].as_array().unwrap().len(), 1);
+    assert_eq!(s["history"][0]["id"], "sess_prev");
+
+    let s = call(&app, "DELETE", "/api/sessions/sess_prev", None).await;
+    assert!(s["history"].as_array().unwrap().is_empty());
+    // Untouched by the cascade: the library and routines stand on their own.
+    assert_eq!(s["exercises"].as_object().unwrap().len(), 8);
+    assert_eq!(s["templates"]["t_push"]["name"], "Push Day");
+
+    // The children the aggregate no longer surfaces are gone from the DB too.
+    let sets = set_entry::Entity::find()
+        .filter(set_entry::Column::SessionId.eq("sess_prev"))
+        .count(&db)
+        .await
+        .unwrap();
+    assert_eq!(sets, 0);
+    let participants = session_participant::Entity::find()
+        .filter(session_participant::Column::SessionId.eq("sess_prev"))
+        .count(&db)
+        .await
+        .unwrap();
+    assert_eq!(participants, 0);
+    let exercises = session_exercise::Entity::find()
+        .filter(session_exercise::Column::SessionId.eq("sess_prev"))
+        .count(&db)
+        .await
+        .unwrap();
+    assert_eq!(exercises, 0);
+}
+
+#[tokio::test]
+async fn deleting_a_finished_workout_cascades_session_exercise_people() {
+    // The seeded history session has no session_exercise rows, so drive the
+    // cascade with a session that actually built the full graph.
+    let (app, db) = app_with_db().await;
+    let s = call(
+        &app,
+        "POST",
+        "/api/sessions",
+        Some(json!({"templateId":"t_push","participantIds":["p_alex","p_maria"]})),
+    )
+    .await;
+    let session_id = s["session"]["id"].as_str().unwrap().to_string();
+    let se_id = s["session"]["exercises"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    call(
+        &app,
+        "POST",
+        &format!("/api/sessions/{session_id}/sets"),
+        Some(json!({"sessionExerciseId": se_id, "personId":"p_alex", "values":{"weight":80,"reps":8}})),
+    )
+    .await;
+    call(
+        &app,
+        "POST",
+        &format!("/api/sessions/{session_id}/finish"),
+        None,
+    )
+    .await;
+
+    let s = call(&app, "DELETE", &format!("/api/sessions/{session_id}"), None).await;
+    assert_eq!(s["history"].as_array().unwrap().len(), 1);
+    assert_eq!(s["history"][0]["id"], "sess_prev");
+
+    let sep = session_exercise_person::Entity::find()
+        .filter(session_exercise_person::Column::SessionExerciseId.eq(se_id))
+        .count(&db)
+        .await
+        .unwrap();
+    assert_eq!(sep, 0);
+}
+
+#[tokio::test]
+async fn deleting_an_active_session_is_rejected() {
+    let app = app().await;
+    let s = call(
+        &app,
+        "POST",
+        "/api/sessions",
+        Some(json!({"templateId":"t_push","participantIds":["p_alex","p_maria"]})),
+    )
+    .await;
+    let session_id = s["session"]["id"].as_str().unwrap().to_string();
+
+    let status = call_status(&app, "DELETE", &format!("/api/sessions/{session_id}")).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    // Still live and untouched.
+    let s = call(&app, "GET", "/api/state", None).await;
+    assert_eq!(s["session"]["id"], session_id.as_str());
+}
+
+#[tokio::test]
+async fn deleting_an_unknown_workout_is_not_found() {
+    let app = app().await;
+    let status = call_status(&app, "DELETE", "/api/sessions/sess_nope").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
 }

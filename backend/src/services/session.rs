@@ -275,6 +275,19 @@ async fn delete_session_graph(db: &DatabaseConnection, session_id: &str) -> Resu
     Ok(())
 }
 
+// Removes a finished workout and everything hanging off it. Active sessions are
+// off limits — they're discarded via start_session, not deleted by hand.
+pub async fn delete_session(db: &DatabaseConnection, session_id: &str) -> AppResult<()> {
+    let session = require_session(db, session_id).await?;
+    if session.status == "active" {
+        return Err(AppError::BadRequest(
+            "Cannot delete a workout that's still in progress. Finish it first.".into(),
+        ));
+    }
+    delete_session_graph(db, session_id).await?;
+    Ok(())
+}
+
 // ---- logging ----
 
 pub async fn log_set(

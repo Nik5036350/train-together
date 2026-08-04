@@ -5,7 +5,7 @@ use crate::state::{build_state, StateResponse};
 use axum::extract::{Json, Path, State};
 use axum::http::{header, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, patch, post, put};
+use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 use rust_embed::RustEmbed;
 use sea_orm::DatabaseConnection;
@@ -41,6 +41,7 @@ pub fn router(db: DatabaseConnection) -> Router {
             patch(set_assignment),
         )
         .route("/api/sessions", post(start_session))
+        .route("/api/sessions/:id", delete(delete_session))
         .route("/api/sessions/:id/finish", post(finish_session))
         .route("/api/sessions/:id/sets", post(log_set))
         .route("/api/sessions/:id/sets/:set_id/undo", post(undo_set))
@@ -260,6 +261,11 @@ async fn start_session(
 
 async fn finish_session(State(db): Db, Path(id): Path<String>) -> AppResult<Json<StateResponse>> {
     session::finish_session(&db, &id).await?;
+    state_of(&db).await
+}
+
+async fn delete_session(State(db): Db, Path(id): Path<String>) -> AppResult<Json<StateResponse>> {
+    session::delete_session(&db, &id).await?;
     state_of(&db).await
 }
 

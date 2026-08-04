@@ -157,6 +157,9 @@ export function AppProvider({ children }) {
         case 'REASSIGN_HISTORY_SET':
           setServer(await api.reassignSet(action.payload.sessionId, action.payload.setId, action.payload.toPersonId))
           break
+        case 'DELETE_WORKOUT':
+          setServer(await api.deleteSession(action.payload.sessionId))
+          break
 
         // ---- in-session per-person mutations ----
         case 'SET_PERSON_STATUS':

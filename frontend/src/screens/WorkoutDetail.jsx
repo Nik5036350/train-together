@@ -8,6 +8,7 @@ import { personPalette, COLORS } from '../theme.js'
 import { Avatar } from '../components/Avatar.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { EditSetSheet } from '../components/EditSetSheet.jsx'
+import { Sheet } from '../components/Sheet.jsx'
 
 export function WorkoutDetail() {
   const { state, dispatch } = useApp()
@@ -15,6 +16,7 @@ export function WorkoutDetail() {
   const { id } = useParams()
   const session = state.history.find((s) => s.id === id)
   const [editingSetId, setEditingSetId] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   if (!session) {
     return (
@@ -37,6 +39,16 @@ export function WorkoutDetail() {
   session.sets.forEach((s) => {
     if (!order.includes(s.exerciseId)) order.push(s.exerciseId)
   })
+
+  // Only leave the screen once the server confirms — on failure we stay put so
+  // the ErrorBar lands where the user acted.
+  const remove = async () => {
+    if (await dispatch({ type: 'DELETE_WORKOUT', payload: { sessionId: session.id } })) {
+      nav('/history')
+    } else {
+      setConfirmDelete(false)
+    }
+  }
 
   return (
     <div style={{ padding: '54px 0 30px', display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -123,7 +135,41 @@ export function WorkoutDetail() {
             </div>
           )
         })}
+
+        <button
+          onClick={() => setConfirmDelete(true)}
+          style={{
+            marginTop: 4,
+            height: 48,
+            borderRadius: 12,
+            background: '#fff',
+            border: '1px solid rgba(214,51,108,.25)',
+            color: '#D6336C',
+            fontWeight: 700,
+            fontSize: 15,
+            flexShrink: 0,
+          }}
+        >
+          Delete workout
+        </button>
       </div>
+
+      <Sheet open={confirmDelete} onClose={() => setConfirmDelete(false)} title={`Delete ${session.name}?`}>
+        <div style={{ fontSize: 14, color: COLORS.textSecondary, lineHeight: 1.5, marginBottom: 16 }}>
+          This permanently removes this workout and all {session.sets.length}{' '}
+          {session.sets.length === 1 ? 'set' : 'sets'} logged in it. Your exercises and routines stay
+          intact, but the &ldquo;last time&rdquo; hints while logging will fall back to an earlier session.
+        </div>
+        <button
+          onClick={remove}
+          style={{ width: '100%', height: 50, borderRadius: 13, background: '#D6336C', color: '#fff', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}
+        >
+          Delete workout
+        </button>
+        <button onClick={() => setConfirmDelete(false)} style={{ width: '100%', padding: 12, marginTop: 8, fontWeight: 600, color: COLORS.textMuted }}>
+          Keep it
+        </button>
+      </Sheet>
 
       <EditSetSheet
         open={!!editingSetId}

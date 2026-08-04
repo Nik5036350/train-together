@@ -42,6 +42,7 @@ export const api = {
   // session lifecycle
   startSession: (body) => request('POST', '/sessions', body),
   finishSession: (id) => request('POST', `/sessions/${id}/finish`),
+  deleteSession: (id) => request('DELETE', `/sessions/${id}`),
 
   // sets (active + history, keyed by owning session)
   logSet: (sessionId, body) => request('POST', `/sessions/${sessionId}/sets`, body),
