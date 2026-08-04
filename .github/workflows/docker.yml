@@ -61,3 +61,27 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # After a successful build on main, bump the image tag in the home-infra
+  # GitOps repo so ArgoCD rolls out the new image on the home k3s cluster.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout home-infra
+        uses: actions/checkout@v4
+        with:
+          repository: Nik5036350/home-infra
+          # Fine-grained PAT (or deploy key) with contents:write on home-infra.
+          token: ${{ secrets.HOME_INFRA_TOKEN }}
+
+      - name: Bump gym image tag
+        run: |
+          TAG="sha-${GITHUB_SHA::7}"   # matches docker/metadata-action type=sha
+          sed -i -E "s#(image: ghcr.io/nik5036350/couples-recording-mode):.*#\1:${TAG}#" infra/gym.yaml
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add infra/gym.yaml
+          git commit -m "gym: deploy ${TAG}" || { echo "no change to deploy"; exit 0; }
+          git push
