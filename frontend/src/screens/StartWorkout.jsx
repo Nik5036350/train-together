@@ -18,18 +18,30 @@ export function StartWorkout() {
 
   const [participants, setParticipants] = useState(state.settings.defaultParticipants)
   const [style, setStyle] = useState(state.settings.defaultLoggingStyle)
+  const [starting, setStarting] = useState(false)
 
   if (!tpl) return null
 
-  const start = () => {
+  // Navigate only once the backend has actually created the session. Going to
+  // /session optimistically showed "No active workout." for the whole round-trip
+  // — and forever if the request failed. The in-flight guard also matters
+  // because each tap is a fresh POST and the backend discards the previously
+  // active session, so a double-tap would destroy the session the first created.
+  const start = async () => {
+    if (starting) return
     const ids =
       participants === 'owner'
         ? [owner.id]
         : participants === 'partner'
           ? [partner.id]
           : [owner.id, partner.id]
-    dispatch({ type: 'START_SESSION', payload: { templateId, participantIds: ids, loggingStyle: style } })
-    nav('/session')
+    setStarting(true)
+    const ok = await dispatch({
+      type: 'START_SESSION',
+      payload: { templateId, participantIds: ids, loggingStyle: style },
+    })
+    setStarting(false)
+    if (ok) nav('/session')
   }
 
   const options = [
@@ -110,8 +122,13 @@ export function StartWorkout() {
           Changing participants here only affects this session — your routine stays the same.
         </div>
 
-        <PrimaryButton onClick={start} style={{ height: 52, fontSize: 17 }} shadow="0 4px 16px rgba(43,102,224,.28)">
-          Start workout
+        <PrimaryButton
+          onClick={start}
+          disabled={starting}
+          style={{ height: 52, fontSize: 17 }}
+          shadow="0 4px 16px rgba(43,102,224,.28)"
+        >
+          {starting ? 'Starting…' : 'Start workout'}
         </PrimaryButton>
       </div>
     </div>

@@ -19,6 +19,7 @@ export function LiveOverview() {
   const [addOpen, setAddOpen] = useState(false)
   const [addAssign, setAddAssign] = useState('both')
   const [finishOpen, setFinishOpen] = useState(false)
+  const [finishing, setFinishing] = useState(false)
 
   if (!session) {
     return (
@@ -29,24 +30,33 @@ export function LiveOverview() {
   const people = participantsOf(state, session)
   const elapsed = formatElapsed(now - session.startTime)
 
-  // The first exercise still needing work is the "active" one.
+  // The first exercise still needing work is the "active" one. Per-person status
+  // is one of 'pending' | 'logged' | 'skipped' — the vocabulary the backend
+  // writes (services/session.rs). It is not 'done'; testing for that made every
+  // exercise look outstanding forever.
   const activeIdx = session.exercises.findIndex((se) =>
     se.appliesTo.some((pid) => {
       const st = se.perPerson[pid]?.status
-      return st !== 'skipped' && st !== 'done'
+      return st !== 'skipped' && st !== 'logged'
     }),
   )
 
-  const finish = () => {
-    dispatch({ type: 'FINISH_SESSION' })
-    nav('/summary')
+  // Same reasoning as starting a workout: /summary reads `lastSummary`, which is
+  // only set once the backend confirms, so navigating early showed "No recent
+  // session." — permanently if the request failed.
+  const finish = async () => {
+    if (finishing) return
+    setFinishing(true)
+    const ok = await dispatch({ type: 'FINISH_SESSION' })
+    setFinishing(false)
+    if (ok) nav('/summary')
   }
 
   const incomplete = session.exercises.filter((se) =>
     se.appliesTo.some((pid) => {
       const st = se.perPerson[pid]?.status
       const has = sessionSets(session, se.id, pid).length > 0
-      return st !== 'skipped' && st !== 'done' && !has
+      return st !== 'skipped' && st !== 'logged' && !has
     }),
   )
 
@@ -173,8 +183,8 @@ export function LiveOverview() {
             Everything's logged. Nice work, both of you.
           </div>
         )}
-        <button onClick={finish} style={{ width: '100%', height: 50, borderRadius: 13, background: COLORS.primary, color: '#fff', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}>
-          {incomplete.length > 0 ? 'Finish anyway' : 'Finish & see summary'}
+        <button onClick={finish} disabled={finishing} style={{ width: '100%', height: 50, borderRadius: 13, background: finishing ? '#C8CBD1' : COLORS.primary, color: '#fff', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}>
+          {finishing ? 'Finishing…' : incomplete.length > 0 ? 'Finish anyway' : 'Finish & see summary'}
         </button>
         <button onClick={() => setFinishOpen(false)} style={{ width: '100%', padding: 12, marginTop: 8, fontWeight: 600, color: COLORS.textMuted }}>
           Return to workout

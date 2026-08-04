@@ -1,5 +1,7 @@
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { DeviceShell } from './components/DeviceShell.jsx'
+import { ErrorBar } from './components/ErrorBar.jsx'
+import { useApp } from './store/AppContext.jsx'
 import { Home } from './screens/Home.jsx'
 import { PartnerSetup } from './screens/PartnerSetup.jsx'
 import { ProfileEdit } from './screens/ProfileEdit.jsx'
@@ -15,12 +17,14 @@ import { WorkoutDetail } from './screens/WorkoutDetail.jsx'
 
 export function App() {
   const location = useLocation()
+  const { actionError, dismissError } = useApp()
   // The start-workout sheet sits on a dark backdrop, so the status bar glyphs
   // need to be white there.
   const dark = location.pathname.startsWith('/start')
 
   return (
     <DeviceShell dark={dark}>
+      {actionError && <ErrorBar error={actionError} onDismiss={dismissError} />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/partner" element={<PartnerSetup />} />

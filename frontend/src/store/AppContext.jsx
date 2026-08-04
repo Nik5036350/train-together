@@ -12,19 +12,28 @@ export function AppProvider({ children }) {
   const [server, setServer] = useState(null) // aggregate from the backend
   const [snackbar, setSnackbar] = useState(null)
   const [lastSummary, setLastSummary] = useState(null)
-  const [error, setError] = useState(null)
+  // Two distinct failure modes: we never got any state at all (nothing to show),
+  // versus a single action failed while the app still holds valid state. The
+  // first blanks the app; the second must not — the app stays usable and the
+  // failure is surfaced as a bar so it can't pass unnoticed.
+  const [bootstrapError, setBootstrapError] = useState(null)
+  const [actionError, setActionError] = useState(null)
 
   // Latest values for use inside the async dispatch without stale closures.
   const ref = useRef({ server: null, snackbar: null })
   ref.current = { server, snackbar }
 
   useEffect(() => {
-    api.getState().then(setServer).catch((e) => setError(e.message))
+    api.getState().then(setServer).catch((e) => setBootstrapError(e.message))
   }, [])
 
+  // Resolves true when the action was applied, false when it failed. Callers
+  // that navigate on success (start / finish a workout) must await it; the rest
+  // can keep ignoring the result.
   const dispatch = useCallback(async (action) => {
     const { server: state } = ref.current
     const session = state?.session
+    setActionError(null)
     try {
       switch (action.type) {
         // ---- onboarding / settings ----
@@ -214,12 +223,16 @@ export function AppProvider({ children }) {
         default:
           break
       }
+      return true
     } catch (e) {
-      setError(e.message)
+      setActionError({ action: action.type, message: e.message })
       // eslint-disable-next-line no-console
       console.error('dispatch failed', action.type, e)
+      return false
     }
   }, [])
+
+  const dismissError = useCallback(() => setActionError(null), [])
 
   // Overlay the client-only UI bits onto the server aggregate.
   const state = useMemo(
@@ -227,11 +240,11 @@ export function AppProvider({ children }) {
     [server, snackbar, lastSummary],
   )
 
-  if (error && !server) {
+  if (bootstrapError && !server) {
     return (
       <div style={{ padding: 40, fontFamily: 'system-ui', color: '#b00' }}>
         Couldn’t reach the backend. Is it running on port 8080?
-        <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>{error}</div>
+        <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>{bootstrapError}</div>
       </div>
     )
   }
@@ -239,7 +252,11 @@ export function AppProvider({ children }) {
     return <div style={{ padding: 40, fontFamily: 'system-ui', color: '#888' }}>Loading…</div>
   }
 
-  return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>
+  return (
+    <AppContext.Provider value={{ state, dispatch, actionError, dismissError }}>
+      {children}
+    </AppContext.Provider>
+  )
 }
 
 export function useApp() {
