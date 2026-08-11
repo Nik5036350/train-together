@@ -35,5 +35,16 @@ pub async fn init_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     create!(session_exercise_person::Entity);
     create!(set_entry::Entity);
     create!(rest_timer::Entity);
+
+    // Columns added after the first release. `if_not_exists()` never alters an
+    // existing table, so bring old database files up to date here; the constant
+    // DEFAULT backfills existing rows. "duplicate column name" errors mean the
+    // column is already there and are safe to ignore.
+    for stmt in [
+        "ALTER TABLE session_exercise ADD COLUMN variant TEXT NOT NULL DEFAULT 'normal'",
+        "ALTER TABLE set_entry ADD COLUMN variant TEXT NOT NULL DEFAULT 'normal'",
+    ] {
+        let _ = db.execute_unprepared(stmt).await;
+    }
     Ok(())
 }

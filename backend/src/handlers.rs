@@ -65,6 +65,7 @@ pub fn router(db: DatabaseConnection) -> Router {
             "/api/session-exercises/:id/logging-mode",
             patch(logging_mode),
         )
+        .route("/api/session-exercises/:id/variant", patch(variant))
         .route("/api/session-exercises/:id/active-row", patch(active_row))
         .route("/api/admin/reset-demo", post(reset_demo))
         .route(
@@ -281,6 +282,7 @@ async fn log_set(
         &r.person_id,
         r.values,
         r.set_type,
+        r.variant,
     )
     .await?;
     state_of(&db).await
@@ -373,6 +375,15 @@ async fn logging_mode(
     Json(r): Json<LoggingModeRequest>,
 ) -> AppResult<Json<StateResponse>> {
     session::set_logging_mode(&db, &id, &r.mode).await?;
+    state_of(&db).await
+}
+
+async fn variant(
+    State(db): Db,
+    Path(id): Path<String>,
+    Json(r): Json<VariantRequest>,
+) -> AppResult<Json<StateResponse>> {
+    session::set_variant(&db, &id, &r.variant).await?;
     state_of(&db).await
 }
 

@@ -214,6 +214,7 @@ pub async fn start_session(
                 .default_logging_mode
                 .clone()
                 .unwrap_or_else(|| style.clone())),
+            variant: Set("normal".into()),
             active_person_id: Set(Some(ppl[0].clone())),
             added_during_session: Set(false),
             order_index: Set(order),
@@ -297,10 +298,14 @@ pub async fn log_set(
     person_id: &str,
     values: LogValues,
     set_type: Option<String>,
+    variant: Option<String>,
 ) -> AppResult<()> {
     require_session(db, session_id).await?;
     let se = require_se(db, session_exercise_id).await?;
     let ex_id = effective_exercise_id(db, &se, person_id).await?;
+    // Stamp the set with the card's currently selected variant (unless the
+    // request pins one explicitly) so each variant keeps its own history line.
+    let variant = variant.unwrap_or_else(|| se.variant.clone());
 
     let prior_count = set_entry::Entity::find()
         .filter(set_entry::Column::SessionId.eq(session_id))
@@ -322,6 +327,7 @@ pub async fn log_set(
         reps: Set(values.reps),
         duration: Set(values.duration),
         set_type: Set(set_type.unwrap_or_else(|| "working".into())),
+        variant: Set(variant),
         timestamp: Set(Some(now())),
         note: Set(note),
     }
@@ -621,6 +627,7 @@ pub async fn add_session_exercise(
         session_id: Set(session_id.into()),
         exercise_id: Set(exercise_id.into()),
         logging_mode: Set(session.logging_style.clone()),
+        variant: Set("normal".into()),
         active_person_id: Set(Some(ppl[0].clone())),
         added_during_session: Set(true),
         order_index: Set(next_order),
@@ -637,6 +644,14 @@ pub async fn set_logging_mode(db: &DatabaseConnection, se_id: &str, mode: &str) 
     let se = require_se(db, se_id).await?;
     let mut am = se.into_active_model();
     am.logging_mode = Set(mode.into());
+    am.update(db).await?;
+    Ok(())
+}
+
+pub async fn set_variant(db: &DatabaseConnection, se_id: &str, variant: &str) -> AppResult<()> {
+    let se = require_se(db, se_id).await?;
+    let mut am = se.into_active_model();
+    am.variant = Set(variant.into());
     am.update(db).await?;
     Ok(())
 }

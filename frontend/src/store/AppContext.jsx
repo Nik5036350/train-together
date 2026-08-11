@@ -204,6 +204,9 @@ export function AppProvider({ children }) {
         case 'SET_LOGGING_MODE':
           setServer(await api.loggingMode(action.payload.sessionExerciseId, action.payload.mode))
           break
+        case 'SET_VARIANT':
+          setServer(await api.variant(action.payload.sessionExerciseId, action.payload.variant))
+          break
         case 'SET_ACTIVE_ROW':
           setServer(await api.activeRow(action.payload.sessionExerciseId, action.payload.personId))
           break

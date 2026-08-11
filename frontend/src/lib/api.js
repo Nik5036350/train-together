@@ -59,6 +59,7 @@ export const api = {
   substitute: (seId, body) => request('PATCH', `/session-exercises/${seId}/substitute`, body),
   personStatus: (seId, body) => request('PATCH', `/session-exercises/${seId}/person-status`, body),
   loggingMode: (seId, mode) => request('PATCH', `/session-exercises/${seId}/logging-mode`, { mode }),
+  variant: (seId, variant) => request('PATCH', `/session-exercises/${seId}/variant`, { variant }),
   activeRow: (seId, personId) => request('PATCH', `/session-exercises/${seId}/active-row`, { personId }),
 
   // admin

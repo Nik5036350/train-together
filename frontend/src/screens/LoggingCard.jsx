@@ -13,6 +13,7 @@ import { Sheet } from '../components/Sheet.jsx'
 import { Segmented } from '../components/Segmented.jsx'
 import { Snackbar } from '../components/Snackbar.jsx'
 import { EditSetSheet } from '../components/EditSetSheet.jsx'
+import { VARIANTS, variantLabel } from '../lib/variants.js'
 
 const MODE_LABELS = { alternate: 'Alternate', turns: 'Turns', independent: 'Independent' }
 
@@ -26,6 +27,7 @@ export function LoggingCard() {
   const se = session?.exercises.find((e) => e.id === id)
   const [inputs, setInputs] = useState({}) // { [personId]: {weight, reps, duration, note} }
   const [modeOpen, setModeOpen] = useState(false)
+  const [variantOpen, setVariantOpen] = useState(false)
   const [skipFor, setSkipFor] = useState(null) // personId
   const [skipReason, setSkipReason] = useState('')
   const [subFor, setSubFor] = useState(null)
@@ -41,6 +43,7 @@ export function LoggingCard() {
   }
 
   const exercise = state.exercises[se.exerciseId]
+  const variant = se.variant || 'normal'
   const people = se.appliesTo
     .filter((pid) => se.perPerson[pid]?.status !== 'skipped')
     .map((pid) => personById(state, pid))
@@ -49,7 +52,9 @@ export function LoggingCard() {
   const getInputs = (personId) => {
     if (inputs[personId]) return inputs[personId]
     const exId = effectiveExerciseId(se, personId)
-    const last = sessionSets(session, se.id, personId).slice(-1)[0] || lastSetValues(state, personId, exId)
+    const last =
+      sessionSets(session, se.id, personId, variant).slice(-1)[0] ||
+      lastSetValues(state, personId, exId, variant)
     return { weight: last?.weight ?? '', reps: last?.reps ?? '', duration: last?.duration ?? '', note: '' }
   }
   const setField = (personId, field, value) =>
@@ -72,7 +77,9 @@ export function LoggingCard() {
 
   const repeat = (personId) => {
     const exId = effectiveExerciseId(se, personId)
-    const last = sessionSets(session, se.id, personId).slice(-1)[0] || lastSetValues(state, personId, exId)
+    const last =
+      sessionSets(session, se.id, personId, variant).slice(-1)[0] ||
+      lastSetValues(state, personId, exId, variant)
     if (!last) return
     dispatch({
       type: 'LOG_SET',
@@ -121,17 +128,28 @@ export function LoggingCard() {
           <button onClick={() => nav('/session')} style={{ color: COLORS.textMuted }}>
             <Icon name="chevronLeft" size={9} style={{ height: 16 }} />
           </button>
-          {!isSingle ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
-              onClick={() => setModeOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', background: '#fff', border: '1px solid rgba(15,17,21,.07)', borderRadius: 9, fontSize: 13, fontWeight: 700 }}
+              onClick={() => setVariantOpen(true)}
+              style={{
+                ...headerPill,
+                // tint the pill so a non-default variant is visible at a glance
+                border: variant !== 'normal' ? `1px solid ${COLORS.primary}` : headerPill.border,
+                color: variant !== 'normal' ? COLORS.primary : undefined,
+              }}
             >
-              {MODE_LABELS[se.loggingMode]}
+              {variantLabel(variant)}
               <span style={{ color: COLORS.textMuted }}><Icon name="chevronDown" size={9} /></span>
             </button>
-          ) : (
-            <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMuted }}>{people[0]?.name} only</span>
-          )}
+            {!isSingle ? (
+              <button onClick={() => setModeOpen(true)} style={headerPill}>
+                {MODE_LABELS[se.loggingMode]}
+                <span style={{ color: COLORS.textMuted }}><Icon name="chevronDown" size={9} /></span>
+              </button>
+            ) : (
+              <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMuted }}>{people[0]?.name} only</span>
+            )}
+          </div>
           <span style={{ color: COLORS.textMuted }}><Icon name="dots" size={18} /></span>
         </div>
         <div style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 26, marginTop: 11, letterSpacing: '-.5px' }}>
@@ -145,7 +163,7 @@ export function LoggingCard() {
         {people.map((person) => {
           const isActive = se.activePersonId === person.id || isSingle
           if (isTurns && !isActive) {
-            return <WaitingRow key={person.id} state={state} session={session} se={se} person={person} now={now} />
+            return <WaitingRow key={person.id} state={state} session={session} se={se} variant={variant} person={person} now={now} />
           }
           return (
             <ActiveRow
@@ -153,6 +171,7 @@ export function LoggingCard() {
               state={state}
               session={session}
               se={se}
+              variant={variant}
               person={person}
               isActive={isActive}
               isTurns={isTurns}
@@ -174,6 +193,7 @@ export function LoggingCard() {
           <ActionBtn icon="pencil" label="Notes" onClick={() => setNotesFor(se.activePersonId || people[0].id)} />
           <ActionBtn icon="skip" label="Skip" onClick={() => setSkipFor(se.activePersonId || people[0].id)} />
           <ActionBtn icon="swap" label="Substitute" onClick={() => setSubFor(se.activePersonId || people[0].id)} />
+          <ActionBtn icon="mode" label="Variant" onClick={() => setVariantOpen(true)} />
           {!isSingle && <ActionBtn icon="mode" label="Mode" onClick={() => setModeOpen(true)} />}
         </div>
       </div>
@@ -207,6 +227,23 @@ export function LoggingCard() {
         <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 14, lineHeight: 1.45 }}>
           <b>Alternate</b> shows both rows live and passes after each set. <b>Turns</b> shows one at a time.
           <b> Independent</b> never switches automatically.
+        </div>
+      </Sheet>
+
+      {/* variant sheet */}
+      <Sheet open={variantOpen} onClose={() => setVariantOpen(false)} title="Training variant">
+        <Segmented
+          variant="cards"
+          options={VARIANTS}
+          value={variant}
+          onChange={(v) => {
+            dispatch({ type: 'SET_VARIANT', payload: { sessionExerciseId: se.id, variant: v } })
+            setVariantOpen(false)
+          }}
+        />
+        <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 14, lineHeight: 1.45 }}>
+          Each variant keeps its own history: last time, suggested values and set numbers
+          only count sets logged under the selected variant.
         </div>
       </Sheet>
 
@@ -341,19 +378,19 @@ export function LoggingCard() {
   )
 }
 
-function ActiveRow({ state, session, se, person, isActive, isTurns, isSingle, otherName, now, vals, onField, onLog, onRepeat, onEditSet, onActivate }) {
+function ActiveRow({ state, session, se, variant, person, isActive, isTurns, isSingle, otherName, now, vals, onField, onLog, onRepeat, onEditSet, onActivate }) {
   const pal = personPalette(person)
   const exId = effectiveExerciseId(se, person.id)
   const exercise = state.exercises[exId]
   const tracks = exercise?.tracks || {}
-  const doneSets = sessionSets(session, se.id, person.id)
+  const doneSets = sessionSets(session, se.id, person.id, variant)
   const setNo = doneSets.length + 1
-  const lt = lastTimeFor(state, person.id, exId)
+  const lt = lastTimeFor(state, person.id, exId, variant)
 
   const timer = session.timers[person.id]
   const onThis = timer && timer.sessionExerciseId === se.id
   const ts = onThis ? timerState(timer, now) : { state: 'none' }
-  const hasLast = !!(sessionSets(session, se.id, person.id).slice(-1)[0] || lt)
+  const hasLast = !!(doneSets.slice(-1)[0] || lt)
 
   const subbed = se.perPerson[person.id]?.substituteExerciseId
 
@@ -493,11 +530,12 @@ function ActiveRow({ state, session, se, person, isActive, isTurns, isSingle, ot
   )
 }
 
-function WaitingRow({ state, session, se, person, now }) {
+function WaitingRow({ state, session, se, variant, person, now }) {
   const pal = personPalette(person)
   const exId = effectiveExerciseId(se, person.id)
-  const setNo = sessionSets(session, se.id, person.id).length + 1
-  const last = sessionSets(session, se.id, person.id).slice(-1)[0]
+  const done = sessionSets(session, se.id, person.id, variant)
+  const setNo = done.length + 1
+  const last = done.slice(-1)[0]
   const timer = session.timers[person.id]
   const onThis = timer && timer.sessionExerciseId === se.id
   const ts = onThis ? timerState(timer, now) : { state: 'ready' }
@@ -590,6 +628,19 @@ function otherName(people, personId) {
 function numOrNull(v) {
   if (v === '' || v == null) return null
   return Number(v)
+}
+
+// Small pill buttons in the card header (variant / logging mode).
+const headerPill = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '7px 12px',
+  background: '#fff',
+  border: '1px solid rgba(15,17,21,.07)',
+  borderRadius: 9,
+  fontSize: 13,
+  fontWeight: 700,
 }
 
 // Shared styles for the bottom-sheet forms (skip / substitute / notes).

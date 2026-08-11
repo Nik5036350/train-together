@@ -152,6 +152,8 @@ pub struct LogSetRequest {
     pub values: LogValues,
     #[serde(default)]
     pub set_type: Option<String>,
+    #[serde(default)]
+    pub variant: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -206,6 +208,11 @@ pub struct PersonStatusRequest {
 #[derive(Deserialize)]
 pub struct LoggingModeRequest {
     pub mode: String,
+}
+
+#[derive(Deserialize)]
+pub struct VariantRequest {
+    pub variant: String,
 }
 
 #[derive(Deserialize)]

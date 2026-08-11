@@ -170,6 +170,7 @@ pub mod session_exercise {
         pub session_id: String,
         pub exercise_id: String,
         pub logging_mode: String,
+        pub variant: String,
         pub active_person_id: Option<String>,
         pub added_during_session: bool,
         pub order_index: i32,
@@ -216,6 +217,7 @@ pub mod set_entry {
         pub reps: Option<i32>,
         pub duration: Option<i32>,
         pub set_type: String,
+        pub variant: String,
         pub timestamp: Option<i64>,
         pub note: Option<String>,
     }

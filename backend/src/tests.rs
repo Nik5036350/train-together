@@ -177,6 +177,99 @@ async fn deleting_a_set_renumbers_remaining() {
 }
 
 #[tokio::test]
+async fn variant_selector_tags_sets_and_defaults_to_normal() {
+    let app = app().await;
+    let s = call(
+        &app,
+        "POST",
+        "/api/sessions",
+        Some(json!({"templateId":"t_push","participantIds":["p_alex","p_maria"],"loggingStyle":"independent"})),
+    )
+    .await;
+    let se_id = s["session"]["exercises"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let session_id = s["session"]["id"].as_str().unwrap().to_string();
+    assert_eq!(s["session"]["exercises"][0]["variant"], "normal");
+
+    // A set logged before switching carries the default variant.
+    let s = call(
+        &app,
+        "POST",
+        &format!("/api/sessions/{session_id}/sets"),
+        Some(json!({"sessionExerciseId": se_id, "personId":"p_alex", "values":{"weight":80,"reps":8}})),
+    )
+    .await;
+    let alex_sets = |s: &Value| -> Vec<Value> {
+        s["session"]["sets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|st| st["personId"] == "p_alex")
+            .cloned()
+            .collect()
+    };
+    assert_eq!(alex_sets(&s)[0]["variant"], "normal");
+
+    // Switch the card to highReps -> subsequent sets are tagged with it while
+    // earlier sets keep theirs, and setIndex stays one global sequence.
+    let s = call(
+        &app,
+        "PATCH",
+        &format!("/api/session-exercises/{se_id}/variant"),
+        Some(json!({"variant":"highReps"})),
+    )
+    .await;
+    assert_eq!(s["session"]["exercises"][0]["variant"], "highReps");
+    let s = call(
+        &app,
+        "POST",
+        &format!("/api/sessions/{session_id}/sets"),
+        Some(json!({"sessionExerciseId": se_id, "personId":"p_alex", "values":{"weight":50,"reps":15}})),
+    )
+    .await;
+    let sets = alex_sets(&s);
+    assert_eq!(sets.len(), 2);
+    assert_eq!(sets[0]["variant"], "normal");
+    assert_eq!(sets[1]["variant"], "highReps");
+    assert_eq!(sets[0]["setIndex"], 0);
+    assert_eq!(sets[1]["setIndex"], 1);
+
+    // An explicit variant in the log request overrides the card's selection.
+    let s = call(
+        &app,
+        "POST",
+        &format!("/api/sessions/{session_id}/sets"),
+        Some(json!({"sessionExerciseId": se_id, "personId":"p_alex", "values":{"weight":100,"reps":2}, "variant":"maxWeight"})),
+    )
+    .await;
+    assert_eq!(alex_sets(&s)[2]["variant"], "maxWeight");
+}
+
+#[tokio::test]
+async fn import_backup_without_variant_defaults_to_normal() {
+    fn strip_variant(v: &mut Value) {
+        match v {
+            Value::Object(map) => {
+                map.remove("variant");
+                map.values_mut().for_each(strip_variant);
+            }
+            Value::Array(arr) => arr.iter_mut().for_each(strip_variant),
+            _ => {}
+        }
+    }
+
+    let app = app().await;
+    let mut backup = call(&app, "GET", "/api/state", None).await;
+    strip_variant(&mut backup); // simulate a pre-variant backup
+    let s = call(&app, "PUT", "/api/state", Some(backup)).await;
+    for st in s["history"][0]["sets"].as_array().unwrap() {
+        assert_eq!(st["variant"], "normal");
+    }
+}
+
+#[tokio::test]
 async fn finishing_moves_session_to_history() {
     let app = app().await;
     let s = call(

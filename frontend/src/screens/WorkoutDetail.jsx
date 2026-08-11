@@ -9,6 +9,7 @@ import { Avatar } from '../components/Avatar.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { EditSetSheet } from '../components/EditSetSheet.jsx'
 import { Sheet } from '../components/Sheet.jsx'
+import { variantLabel } from '../lib/variants.js'
 
 export function WorkoutDetail() {
   const { state, dispatch } = useApp()
@@ -113,11 +114,29 @@ export function WorkoutDetail() {
                     .sort((a, b) => a.setIndex - b.setIndex)
                   if (sets.length === 0) return null
                   const pal = personPalette(person)
-                  return (
-                    <div key={person.id} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      <Avatar person={person} size={22} radius={6} fontSize={11} />
+                  // One chip row per training variant, in first-appearance order;
+                  // sets from before the feature count as "normal".
+                  const groups = []
+                  sets.forEach((s) => {
+                    const v = s.variant || 'normal'
+                    const g = groups.find((g) => g.variant === v)
+                    if (g) g.sets.push(s)
+                    else groups.push({ variant: v, sets: [s] })
+                  })
+                  return groups.map((g, gi) => (
+                    <div key={`${person.id}_${g.variant}`} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                      {gi === 0 ? (
+                        <Avatar person={person} size={22} radius={6} fontSize={11} />
+                      ) : (
+                        <span style={{ width: 22, flexShrink: 0 }} />
+                      )}
+                      {g.variant !== 'normal' && (
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', color: COLORS.textMuted, textTransform: 'uppercase' }}>
+                          {variantLabel(g.variant)}
+                        </span>
+                      )}
                       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', flex: 1 }}>
-                        {sets.map((s) => (
+                        {g.sets.map((s) => (
                           <button
                             key={s.id}
                             onClick={() => setEditingSetId(s.id)}
@@ -129,7 +148,7 @@ export function WorkoutDetail() {
                         ))}
                       </div>
                     </div>
-                  )
+                  ))
                 })}
               </div>
             </div>

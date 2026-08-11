@@ -107,6 +107,8 @@ pub struct SessionExerciseResp {
     pub exercise_id: String,
     pub applies_to: Vec<String>,
     pub logging_mode: String,
+    #[serde(default = "default_variant")] // older backups omitted this
+    pub variant: String,
     pub active_person_id: Option<String>,
     #[serde(default)] // older backups omitted this
     pub added_during_session: Option<bool>,
@@ -125,6 +127,8 @@ pub struct SetResp {
     pub reps: Option<i32>,
     pub duration: Option<i32>,
     pub set_type: String,
+    #[serde(default = "default_variant")] // older backups omitted this
+    pub variant: String,
     pub timestamp: Option<i64>,
     pub note: Option<String>,
 }
@@ -173,6 +177,10 @@ fn default_logging_style() -> String {
 
 fn default_finished() -> String {
     "finished".to_string()
+}
+
+fn default_variant() -> String {
+    "normal".to_string()
 }
 
 // Reassemble the normalized tables into the single aggregate tree.
@@ -344,6 +352,7 @@ async fn build_session(
             exercise_id: se.exercise_id,
             applies_to,
             logging_mode: se.logging_mode,
+            variant: se.variant,
             active_person_id: se.active_person_id,
             added_during_session: if se.added_during_session {
                 Some(true)
@@ -376,6 +385,7 @@ async fn build_session(
             reps: st.reps,
             duration: st.duration,
             set_type: st.set_type,
+            variant: st.variant,
             timestamp: st.timestamp,
             note: st.note,
         })

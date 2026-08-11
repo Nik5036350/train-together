@@ -229,6 +229,7 @@ async fn insert_seed_history(db: &DatabaseConnection) -> Result<(), DbErr> {
             reps: Set(Some(reps)),
             duration: Set(None),
             set_type: Set("working".into()),
+            variant: Set("normal".into()),
             timestamp: Set(None),
             note: Set(None),
         }
