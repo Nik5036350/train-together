@@ -4,12 +4,24 @@ import { useApp } from '../store/AppContext.jsx'
 import { personById } from '../store/reducer.js'
 import { participantsOf, sessionSets } from '../lib/selectors.js'
 import { useNow, timerState } from '../lib/useNow.js'
-import { formatElapsed, formatDuration } from '../lib/format.js'
-import { personPalette, COLORS } from '../theme.js'
+import { formatElapsed, formatClock } from '../lib/format.js'
+import { personPalette, COLORS, FONTS, RADII, BORDER } from '../theme.js'
 import { Avatar, PersonPair } from '../components/Avatar.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { Sheet } from '../components/Sheet.jsx'
 import { Segmented } from '../components/Segmented.jsx'
+import { SectionLabel } from '../components/SectionLabel.jsx'
+import { IdentityBand } from '../components/IdentityBand.jsx'
+import { TimerRing } from '../components/TimerRing.jsx'
+import { PrimaryButton } from '../components/Button.jsx'
+
+// Rest state as words + color — never color alone (guide §4.3).
+const STATE_TEXT = {
+  resting: { label: 'Resting', color: COLORS.steel },
+  ready: { label: 'Ready', color: COLORS.success },
+  overdue: { label: 'Overdue', color: COLORS.primaryText },
+  none: { label: 'Ready', color: COLORS.success },
+}
 
 export function LiveOverview() {
   const { state, dispatch } = useApp()
@@ -67,30 +79,49 @@ export function LiveOverview() {
   return (
     <div style={{ padding: '52px 0 30px', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '4px 20px 14px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div>
-            <button onClick={() => nav('/')} style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 23, letterSpacing: '-.3px', textAlign: 'left' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <button
+              onClick={() => nav('/')}
+              className="display"
+              style={{ fontSize: 26, textTransform: 'uppercase', textAlign: 'left', lineHeight: 1.05 }}
+            >
               {session.name}
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 7 }}>
-              <PersonPair people={people} size={21} />
-              <span style={{ fontSize: 13, color: COLORS.textSecondary, fontWeight: 500 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <PersonPair people={people} size={20} />
+              <span className="meta" style={{ color: COLORS.textSecondary }}>
                 {people.map((p) => p.name).join(' + ')}
               </span>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: COLORS.textSecondary }}>
-              <Icon name="clock" size={14} />
-              <span className="num" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 17 }}>
-                {elapsed}
-              </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+            <div
+              className="num display"
+              style={{ fontSize: 24, display: 'flex', alignItems: 'center', gap: 7 }}
+            >
+              <Icon name="clock" size={15} />
+              {elapsed}
             </div>
-            <button onClick={() => setFinishOpen(true)} style={{ padding: '8px 15px', background: '#0F1115', color: '#fff', borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
+            <button
+              onClick={() => setFinishOpen(true)}
+              style={{
+                padding: '8px 14px',
+                background: COLORS.text,
+                color: COLORS.onDark,
+                borderRadius: RADII.sm,
+                fontFamily: FONTS.heading,
+                fontWeight: 700,
+                fontSize: 13,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+              }}
+            >
               Finish
             </button>
           </div>
         </div>
+        <div style={{ height: 3, background: COLORS.rule, marginTop: 12 }} />
       </div>
 
       <div className="scroll-area" style={{ flex: 1, padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -110,16 +141,19 @@ export function LiveOverview() {
         <button
           onClick={() => setAddOpen(true)}
           style={{
-            border: '1.5px dashed rgba(15,17,21,.15)',
-            borderRadius: 12,
-            padding: 13,
+            border: `${BORDER}px dashed ${COLORS.rule}`,
+            borderRadius: RADII.sm,
+            padding: 14,
+            fontFamily: FONTS.heading,
             fontSize: 14,
-            fontWeight: 600,
-            color: COLORS.textSecondary,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: COLORS.text,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 7,
+            gap: 8,
           }}
         >
           <Icon name="plus" size={13} />
@@ -129,8 +163,8 @@ export function LiveOverview() {
 
       {/* Add exercise sheet */}
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Add exercise">
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: COLORS.textMuted, marginBottom: 10 }}>FOR WHOM</div>
-        <div style={{ marginBottom: 16 }}>
+        <SectionLabel style={{ marginBottom: 12 }}>For whom</SectionLabel>
+        <div style={{ marginBottom: 20 }}>
           <Segmented
             variant="cards"
             options={[
@@ -142,7 +176,7 @@ export function LiveOverview() {
             onChange={setAddAssign}
           />
         </div>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: COLORS.textMuted, marginBottom: 10 }}>EXERCISE</div>
+        <SectionLabel style={{ marginBottom: 12 }}>Exercise</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {libraryNotInSession.map((ex) => (
             <button
@@ -151,11 +185,19 @@ export function LiveOverview() {
                 dispatch({ type: 'ADD_SESSION_EXERCISE', payload: { exerciseId: ex.id, assignment: addAssign } })
                 setAddOpen(false)
               }}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: 12, padding: '13px 14px', border: '1px solid rgba(15,17,21,.06)' }}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: COLORS.card,
+                borderRadius: RADII.sm,
+                padding: '12px 14px',
+                border: `${BORDER}px solid ${COLORS.ruleSoft}`,
+              }}
             >
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{ex.name}</div>
-                <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>{ex.equipment || ex.category}</div>
+                <div className="display" style={{ fontSize: 16, textTransform: 'uppercase' }}>{ex.name}</div>
+                <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>{ex.equipment || ex.category}</div>
               </div>
               <Icon name="plus" size={14} />
             </button>
@@ -166,27 +208,40 @@ export function LiveOverview() {
       {/* Finish confirmation (PRD FR-220 — warns about incomplete items) */}
       <Sheet open={finishOpen} onClose={() => setFinishOpen(false)} title="Finish workout?">
         {incomplete.length > 0 ? (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 10 }}>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 12 }}>
               Some planned exercises aren't done yet:
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {incomplete.map((se) => (
-                <div key={se.id} style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600 }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {incomplete.map((se, i) => (
+                <div
+                  key={se.id}
+                  className="display"
+                  style={{
+                    padding: '10px 0',
+                    fontSize: 15,
+                    textTransform: 'uppercase',
+                    borderTop: i === 0 ? 'none' : `1px solid ${COLORS.ruleSoft}`,
+                  }}
+                >
                   {state.exercises[se.exerciseId]?.name}
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 20 }}>
             Everything's logged. Nice work, both of you.
           </div>
         )}
-        <button onClick={finish} disabled={finishing} style={{ width: '100%', height: 50, borderRadius: 13, background: finishing ? '#C8CBD1' : COLORS.primary, color: '#fff', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}>
+        <PrimaryButton onClick={finish} disabled={finishing}>
           {finishing ? 'Finishing…' : incomplete.length > 0 ? 'Finish anyway' : 'Finish & see summary'}
-        </button>
-        <button onClick={() => setFinishOpen(false)} style={{ width: '100%', padding: 12, marginTop: 8, fontWeight: 600, color: COLORS.textMuted }}>
+        </PrimaryButton>
+        <button
+          onClick={() => setFinishOpen(false)}
+          className="meta"
+          style={{ width: '100%', padding: 14, marginTop: 8, color: COLORS.textSecondary }}
+        >
           Return to workout
         </button>
       </Sheet>
@@ -203,62 +258,73 @@ function ExerciseRow({ state, session, se, index, active, now, onOpen }) {
   if (active) {
     const activePerson = personById(state, se.activePersonId)
     const pal = personPalette(activePerson)
+    const timer = session.timers[activePerson?.id]
+    const onThis = timer && timer.sessionExerciseId === se.id
+    const ts = onThis ? timerState(timer, now) : { state: 'ready' }
+
     return (
       <button
         onClick={onOpen}
         style={{
+          display: 'flex',
           textAlign: 'left',
-          background: '#fff',
-          borderRadius: 14,
-          padding: 14,
-          border: `1.5px solid ${pal.accent}`,
-          boxShadow: `0 6px 18px ${pal.accent}1A`,
+          background: COLORS.card,
+          borderRadius: RADII.md,
+          border: `${BORDER}px solid ${pal.accent}`,
+          overflow: 'hidden',
+          width: '100%',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="num" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 14, color: '#C2C6CD' }}>{index + 1}</span>
-          <span style={{ flex: 1, fontWeight: 700, fontSize: 16 }}>{exercise?.name}</span>
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: pal.text, background: pal.tint, padding: '4px 9px', borderRadius: 7, letterSpacing: '.3px' }}>
-            NEXT · {activePerson?.name?.toUpperCase()}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          {people.map((p) => {
-            const count = sessionSets(session, se.id, p.id).length
-            const pp = personPalette(p)
-            return (
-              <div key={p.id} style={{ flex: 1, background: '#F4F5F7', borderRadius: 10, padding: '8px 11px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: pp.text, fontWeight: 700 }}>{p.name}</span>
-                <span className="num" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 15 }}>{count} {count === 1 ? 'set' : 'sets'}</span>
+        <IdentityBand person={activePerson} active width={30} />
+        <div style={{ flex: 1, minWidth: 0, padding: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="meta" style={{ color: pal.text }}>
+                Next · {activePerson?.name}
               </div>
-            )
-          })}
-        </div>
-        <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 12, flexWrap: 'wrap' }}>
-          {people.map((p) => {
-            const t = session.timers[p.id]
-            const onThis = t && t.sessionExerciseId === se.id
-            const ts = onThis ? timerState(t, now) : { state: 'ready' }
-            if (ts.state === 'resting') {
-              return (
-                <span key={p.id} style={{ color: COLORS.textMuted, fontWeight: 500 }}>
-                  {p.name} resting {formatDuration(ts.remaining)}
-                </span>
-              )
-            }
-            return (
-              <span key={p.id} style={{ color: COLORS.success, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: COLORS.success }} />
-                {p.name} ready
-              </span>
-            )
-          })}
+              <div className="display" style={{ fontSize: 20, textTransform: 'uppercase', marginTop: 4 }}>
+                {exercise?.name}
+              </div>
+            </div>
+            <span className="num display" style={{ fontSize: 20, color: COLORS.textSecondary }}>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {people.map((p) => {
+                const count = sessionSets(session, se.id, p.id).length
+                const pp = personPalette(p)
+                // Each participant keeps their own rest state visible here —
+                // the ring only ever shows whoever's turn it is.
+                const pt = session.timers[p.id]
+                const pOnThis = pt && pt.sessionExerciseId === se.id
+                const pts = pOnThis ? timerState(pt, now) : { state: 'ready' }
+                return (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 10, height: 10, background: pp.accent, flexShrink: 0 }} />
+                    <span className="meta" style={{ color: COLORS.textSecondary }}>{p.name}</span>
+                    <span className="meta num" style={{ flex: 1, fontSize: 10, color: STATE_TEXT[pts.state].color }}>
+                      {pts.state === 'resting'
+                        ? `Rest ${formatClock(pts.remaining)}`
+                        : STATE_TEXT[pts.state].label}
+                    </span>
+                    <span className="num" style={{ fontFamily: FONTS.heading, fontWeight: 700, fontSize: 14 }}>
+                      {count} {count === 1 ? 'SET' : 'SETS'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            <TimerRing ts={ts} total={onThis ? timer.durationSeconds : 0} size={62} stroke={5} />
+          </div>
         </div>
       </button>
     )
   }
 
-  // Compact / inactive row
+  // Compact / inactive row — a ledger line rather than a card.
   let subtitle = 'Not started yet'
   if (anySkipped) {
     const sp = personById(state, anySkipped)
@@ -273,28 +339,33 @@ function ExerciseRow({ state, session, se, index, active, now, onOpen }) {
       onClick={onOpen}
       style={{
         textAlign: 'left',
-        background: '#fff',
-        borderRadius: 14,
-        border: '1px solid rgba(15,17,21,.05)',
-        padding: '13px 14px',
+        background: COLORS.card,
+        borderRadius: RADII.sm,
+        border: `1px solid ${COLORS.ruleSoft}`,
+        padding: '12px 14px',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
-        opacity: anySkipped ? 0.6 : 1,
+        gap: 12,
+        opacity: anySkipped ? 0.65 : 1,
+        width: '100%',
       }}
     >
-      <span className="num" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 14, color: '#C2C6CD' }}>{index + 1}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>
-          {exercise?.name}
+      <span className="num display" style={{ fontSize: 19, color: COLORS.textSecondary, minWidth: 24 }}>
+        {String(index + 1).padStart(2, '0')}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="display" style={{ fontSize: 16, textTransform: 'uppercase' }}>{exercise?.name}</span>
           {anySub && (
-            <span style={{ fontSize: 10.5, fontWeight: 600, color: '#C2570C', background: '#FBF1E9', padding: '2px 7px', borderRadius: 6 }}>substituted</span>
+            <span className="meta" style={{ fontSize: 10, color: COLORS.text, background: COLORS.warning, padding: '2px 6px' }}>
+              substituted
+            </span>
           )}
         </div>
-        <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>{subtitle}</div>
+        <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>{subtitle}</div>
       </div>
       {people.map((p, idx) => (
-        <Avatar key={p.id} person={p} size={20} radius={6} fontSize={10} style={idx > 0 ? { marginLeft: -6, border: '1.5px solid #fff' } : undefined} />
+        <Avatar key={p.id} person={p} size={20} fontSize={11} style={idx > 0 ? { marginLeft: 2 } : undefined} />
       ))}
     </button>
   )
@@ -303,8 +374,19 @@ function ExerciseRow({ state, session, se, index, active, now, onOpen }) {
 function Empty({ onHome }) {
   return (
     <div style={{ padding: '120px 30px', textAlign: 'center' }}>
-      <div style={{ fontSize: 16, fontWeight: 600, color: COLORS.textSecondary, marginBottom: 16 }}>No active workout.</div>
-      <button onClick={onHome} style={{ color: COLORS.primary, fontWeight: 700 }}>Back to workouts</button>
+      <div className="display" style={{ fontSize: 24, textTransform: 'uppercase', marginBottom: 8 }}>
+        No active workout
+      </div>
+      <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 20 }}>
+        Start a session from your routines.
+      </div>
+      <button
+        onClick={onHome}
+        className="meta"
+        style={{ color: COLORS.primaryText, borderBottom: `2px solid ${COLORS.primaryText}`, paddingBottom: 2 }}
+      >
+        Back to workouts
+      </button>
     </div>
   )
 }

@@ -1,11 +1,11 @@
-import { COLORS } from '../theme.js'
+import { BORDER, COLORS, FONTS, RADII } from '../theme.js'
 
 // A failed action used to be invisible (console only), so screens just kept
 // showing their empty state — e.g. "No active workout." after a start that never
-// landed. This surfaces the real HTTP failure instead. Styled like Snackbar
-// (same dark surface) with a red accent so it reads as an error, not a
-// confirmation. Unlike Snackbar it does not auto-dismiss: a lost mutation is
-// worth an explicit acknowledgement.
+// landed. This surfaces the real HTTP failure instead. Direct, uppercase wording
+// per guide §28 ("SET COULD NOT BE SAVED"), never "something went wrong". Unlike
+// Snackbar it does not auto-dismiss: a lost mutation is worth an explicit
+// acknowledgement.
 export function ErrorBar({ error, onDismiss }) {
   return (
     <div
@@ -20,24 +20,28 @@ export function ErrorBar({ error, onDismiss }) {
         top: 46,
         zIndex: 70,
         background: COLORS.darkSurface,
-        border: '1px solid rgba(226,86,86,.45)',
-        borderRadius: 12,
+        border: `${BORDER}px solid ${COLORS.primary}`,
+        borderRadius: RADII.sm,
         padding: '12px 14px',
         display: 'flex',
         alignItems: 'flex-start',
-        gap: 10,
-        boxShadow: '0 8px 22px rgba(0,0,0,.28)',
-        animation: 'snackbar-in .2s ease',
+        gap: 12,
+        animation: 'snackbar-in var(--motion-default) var(--ease-default)',
       }}
     >
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#E25656', marginTop: 5 }} />
+      <span style={{ width: 6, alignSelf: 'stretch', background: COLORS.primary, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{labelFor(error.action)} failed</div>
+        <div
+          className="meta"
+          style={{ fontSize: 13, color: COLORS.onDark, fontWeight: 700 }}
+        >
+          {labelFor(error.action)} failed
+        </div>
         <div
           style={{
-            fontSize: 11.5,
-            marginTop: 3,
-            color: 'rgba(255,255,255,.62)',
+            fontSize: 12,
+            marginTop: 4,
+            color: COLORS.onDarkMuted,
             lineHeight: 1.4,
             wordBreak: 'break-word',
           }}
@@ -45,7 +49,19 @@ export function ErrorBar({ error, onDismiss }) {
           {error.message}
         </div>
       </div>
-      <button onClick={onDismiss} style={{ fontSize: 13, fontWeight: 700, color: '#86AEF7' }}>
+      <button
+        onClick={onDismiss}
+        style={{
+          fontFamily: FONTS.heading,
+          fontSize: 13,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          color: COLORS.onDark,
+          borderBottom: `2px solid ${COLORS.primary}`,
+          paddingBottom: 1,
+        }}
+      >
         Dismiss
       </button>
     </div>

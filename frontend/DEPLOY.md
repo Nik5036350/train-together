@@ -17,19 +17,19 @@ GitHub Actions workflow.
 This checkout is configured for the project-site URL:
 
 ```text
-https://Nik5036350.github.io/couples-recording-mode/
+https://Nik5036350.github.io/train-together/
 ```
 
 In general, the final URL will be one of these:
 
-- Project site: `https://YOUR_USERNAME.github.io/couples-recording-mode/`
+- Project site: `https://YOUR_USERNAME.github.io/train-together/`
 - User site: `https://YOUR_USERNAME.github.io/`
 - Custom domain: `https://your-domain.com/`
 
 ## 1. Create the GitHub repository
 
 1. Sign in to GitHub.
-2. Create a new repository named `couples-recording-mode`.
+2. Create a new repository named `train-together`.
 3. Keep it public if you are using GitHub Free. Private GitHub Pages requires a paid
    plan or eligible organization plan.
 4. Do not add starter files on GitHub if this local repo already has `README.md`,
@@ -44,7 +44,7 @@ git init
 git add .
 git commit -m "Initial app"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/couples-recording-mode.git
+git remote add origin https://github.com/YOUR_USERNAME/train-together.git
 git push -u origin main
 ```
 
@@ -52,7 +52,7 @@ If the repo already has Git history, skip `git init` and the commit if they are 
 needed. If `origin` already exists, update it instead:
 
 ```bash
-git remote set-url origin https://github.com/YOUR_USERNAME/couples-recording-mode.git
+git remote set-url origin https://github.com/YOUR_USERNAME/train-together.git
 git push -u origin main
 ```
 
@@ -64,7 +64,7 @@ For the normal project URL:
 
 ```js
 export default defineConfig({
-  base: '/couples-recording-mode/',
+  base: '/train-together/',
   plugins: [
     // existing plugins
   ],
@@ -180,7 +180,7 @@ manually from the **Actions** tab because the workflow includes `workflow_dispat
 4. Open the deployed URL shown in the workflow summary, or visit:
 
 ```text
-https://YOUR_USERNAME.github.io/couples-recording-mode/
+https://YOUR_USERNAME.github.io/train-together/
 ```
 
 GitHub Pages can take a few minutes to publish the first deployment.

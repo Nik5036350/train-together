@@ -11,7 +11,7 @@ export function exportState(state) {
   const a = document.createElement('a')
   const stamp = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
   a.href = url
-  a.download = `couples-backup-${stamp}.json`
+  a.download = `train-together-backup-${stamp}.json`
   document.body.appendChild(a)
   a.click()
   a.remove()
@@ -36,7 +36,9 @@ export function parseImport(text) {
     typeof parsed.exercises !== 'object' ||
     typeof parsed.templates !== 'object'
   ) {
-    throw new Error("That doesn't look like a Couples Recording backup.")
+    // Only the shape is checked, never the name — backups exported under the
+    // old "Couples Recording Mode" name still import fine.
+    throw new Error("That doesn't look like a Train Together backup.")
   }
   return parsed
 }

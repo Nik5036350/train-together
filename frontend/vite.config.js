@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   // Served under a subpath on GitHub Pages, but at root when the Spring Boot
   // backend serves the built assets (Docker). Override with VITE_BASE=/.
-  base: process.env.VITE_BASE || '/couples-recording-mode/',
+  base: process.env.VITE_BASE || '/train-together/',
   server: {
     // Proxy API calls to the Spring Boot backend during development.
     proxy: {
@@ -28,13 +28,13 @@ export default defineConfig({
         'icon-512-maskable.png',
       ],
       manifest: {
-        name: 'Couples Recording Mode',
-        short_name: 'Couples Recording',
+        name: 'Train Together',
+        short_name: 'Train Together',
         description: 'Strength workout logger for two people on one phone',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#F4F5F7',
-        theme_color: '#16191F',
+        background_color: '#F1E6D0',
+        theme_color: '#181816',
         start_url: '.',
         scope: '.',
         icons: [

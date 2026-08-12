@@ -3,9 +3,8 @@ import { useApp } from '../store/AppContext.jsx'
 import { personById } from '../store/reducer.js'
 import { personTotals } from '../lib/selectors.js'
 import { formatElapsed, trimNum } from '../lib/format.js'
-import { personPalette, COLORS } from '../theme.js'
-import { Avatar } from '../components/Avatar.jsx'
-import { Icon } from '../components/Icon.jsx'
+import { personPalette, COLORS, BORDER } from '../theme.js'
+import { StatBlock } from '../components/StatBlock.jsx'
 import { GhostButton, PrimaryButton } from '../components/Button.jsx'
 
 export function SessionSummary() {
@@ -16,8 +15,16 @@ export function SessionSummary() {
   if (!summary) {
     return (
       <div style={{ padding: '120px 30px', textAlign: 'center' }}>
-        <div style={{ fontSize: 16, color: COLORS.textSecondary, marginBottom: 16 }}>No recent session.</div>
-        <button onClick={() => nav('/')} style={{ color: COLORS.primary, fontWeight: 700 }}>Back to workouts</button>
+        <div className="display" style={{ fontSize: 22, textTransform: 'uppercase', marginBottom: 16 }}>
+          No recent session
+        </div>
+        <button
+          onClick={() => nav('/')}
+          className="meta"
+          style={{ color: COLORS.primaryText, borderBottom: `2px solid ${COLORS.primaryText}`, paddingBottom: 2 }}
+        >
+          Back to workouts
+        </button>
       </div>
     )
   }
@@ -33,67 +40,108 @@ export function SessionSummary() {
   }
 
   return (
-    <div style={{ padding: '58px 0 30px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '10px 20px 18px', textAlign: 'center' }}>
-        <div style={{ width: 52, height: 52, borderRadius: '50%', background: COLORS.success, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-          <Icon name="checkBig" size={22} />
-        </div>
-        <div style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 24, letterSpacing: '-.3px' }}>
-          {summary.name} complete
-        </div>
-        <div style={{ fontSize: 14, color: COLORS.textMuted, marginTop: 4 }}>
-          {people.length > 1 ? 'Great session, both of you.' : 'Great session.'}
-        </div>
-      </div>
-
-      <div className="scroll-area" style={{ flex: 1, padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
-        {/* shared hero card */}
-        <div style={{ background: COLORS.darkSurface, borderRadius: 16, padding: 16, color: '#fff' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: 'rgba(255,255,255,.45)', marginBottom: 13 }}>
-            SHARED SESSION
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Stat value={duration} label="duration" dark />
-            <Stat value={exerciseCount} label="exercises" dark />
-            <Stat value={totalSets} label="total sets" dark />
-          </div>
-        </div>
-
-        {/* per-person cards */}
-        {people.map((person) => {
-          const pal = personPalette(person)
-          const t = personTotals(summary, person.id, state.exercises)
-          return (
-            <div key={person.id} style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(15,17,21,.05)', borderLeft: `3px solid ${pal.accent}`, padding: 15 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 13 }}>
-                <Avatar person={person} size={26} radius={8} />
-                <span style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}>{person.name}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <Stat value={t.exercises} label="exercises" />
-                <Stat value={t.sets} label="sets" />
-                <Stat value={`${trimNum(t.volume)} ${person.unit}`} label="volume" flex={1.4} />
-              </div>
+    <div style={{ padding: '52px 0 30px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="scroll-area" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Completion block — the restrained geometric motif of guide §25:
+            a red field cut by an ink diagonal, no confetti. */}
+        <div
+          className="grain"
+          style={{
+            position: 'relative',
+            background: COLORS.primary,
+            color: COLORS.onDark,
+            padding: '26px 20px 22px',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `linear-gradient(206deg, ${COLORS.text} 0 30%, transparent 30.2%)`,
+            }}
+          />
+          <div style={{ position: 'relative' }}>
+            <div className="display" style={{ fontSize: 38, textTransform: 'uppercase', lineHeight: 0.98 }}>
+              Workout
+              <br />
+              complete
             </div>
-          )
-        })}
+            <div className="meta" style={{ marginTop: 10, color: COLORS.onDarkMuted }}>
+              {summary.name}
+            </div>
+          </div>
+        </div>
+
+        {/* Shared metrics */}
+        <div style={{ background: COLORS.text, color: COLORS.onDark, padding: '18px 20px' }}>
+          <div style={{ display: 'flex', gap: 14 }}>
+            <StatBlock value={duration} label="total time" tone="dark" size={34} />
+            <StatBlock value={totalSets} label="total sets" tone="dark" size={34} />
+            <StatBlock value={exerciseCount} label="exercises" tone="dark" size={34} />
+          </div>
+        </div>
+
+        {/* Per-person blocks — equal but distinct, never blended (guide §4.2). */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {people.map((person) => {
+            const pal = personPalette(person)
+            const t = personTotals(summary, person.id, state.exercises)
+            return (
+              <div
+                key={person.id}
+                style={{
+                  display: 'flex',
+                  background: COLORS.card,
+                  borderBottom: `${BORDER}px solid ${COLORS.rule}`,
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    background: pal.accent,
+                    color: pal.onAccent,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span
+                    className="display"
+                    style={{
+                      writingMode: 'vertical-rl',
+                      transform: 'rotate(180deg)',
+                      fontSize: 17,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {person.name}
+                  </span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0, padding: '16px 18px' }}>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <StatBlock value={`${trimNum(t.volume)}`} label={`volume ${person.unit}`} size={30} flex={1.5} />
+                    <StatBlock value={t.sets} label="sets" size={30} />
+                    <StatBlock value={t.reps} label="reps" size={30} />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div style={{ padding: '16px 20px 0', fontSize: 13, color: COLORS.textSecondary }}>
+          {people.length > 1 ? 'Logged separately, trained together.' : 'Session logged.'}
+        </div>
       </div>
 
-      <div style={{ padding: '12px 18px 0', display: 'flex', gap: 9 }}>
+      <div style={{ padding: '14px 18px 0', display: 'flex', gap: 9 }}>
         <GhostButton onClick={() => nav(`/history/${summary.id}`)}>View details</GhostButton>
-        <PrimaryButton onClick={done} style={{ height: 48, fontSize: 15 }}>Done</PrimaryButton>
+        <PrimaryButton onClick={done}>Done</PrimaryButton>
       </div>
-    </div>
-  )
-}
-
-function Stat({ value, label, dark, flex = 1 }) {
-  return (
-    <div style={{ flex }}>
-      <div className="num" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: dark ? 22 : 19 }}>
-        {value}
-      </div>
-      <div style={{ fontSize: 11, color: dark ? 'rgba(255,255,255,.45)' : COLORS.textMuted, marginTop: 2 }}>{label}</div>
     </div>
   )
 }

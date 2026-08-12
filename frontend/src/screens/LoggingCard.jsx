@@ -4,15 +4,19 @@ import { useApp } from '../store/AppContext.jsx'
 import { personById, effectiveExerciseId } from '../store/reducer.js'
 import { sessionSets, lastTimeFor, lastSetValues } from '../lib/selectors.js'
 import { useNow, timerState } from '../lib/useNow.js'
-import { setChip, setSummary, formatDuration, trimNum } from '../lib/format.js'
-import { personPalette, COLORS } from '../theme.js'
-import { Avatar } from '../components/Avatar.jsx'
+import { setSummary } from '../lib/format.js'
+import { personPalette, COLORS, FONTS, RADII, BORDER } from '../theme.js'
 import { Icon } from '../components/Icon.jsx'
 import { ValueInput } from '../components/Stepper.jsx'
 import { Sheet } from '../components/Sheet.jsx'
 import { Segmented } from '../components/Segmented.jsx'
 import { Snackbar } from '../components/Snackbar.jsx'
 import { EditSetSheet } from '../components/EditSetSheet.jsx'
+import { IdentityBand } from '../components/IdentityBand.jsx'
+import { TimerRing } from '../components/TimerRing.jsx'
+import { SetLedger } from '../components/SetLedger.jsx'
+import { SectionLabel } from '../components/SectionLabel.jsx'
+import { PrimaryButton } from '../components/Button.jsx'
 import { VARIANTS, variantLabel } from '../lib/variants.js'
 
 const MODE_LABELS = { alternate: 'Alternate', turns: 'Turns', independent: 'Independent' }
@@ -37,7 +41,7 @@ export function LoggingCard() {
   if (!session || !se) {
     return (
       <div style={{ padding: '120px 30px', textAlign: 'center' }}>
-        <button onClick={() => nav('/session')} style={{ color: COLORS.primary, fontWeight: 700 }}>Back to session</button>
+        <button onClick={() => nav('/session')} style={backLinkStyle}>Back to session</button>
       </div>
     )
   }
@@ -114,7 +118,7 @@ export function LoggingCard() {
     }
   }
 
-  // Resolve the set being edited (chips in the THIS SESSION block) + the other
+  // Resolve the set being edited (rows in the THIS SESSION ledger) + the other
   // participant it could be reassigned to.
   const editSet = editingSetId ? session.sets.find((s) => s.id === editingSetId) : null
   const editOtherId = editSet ? se.appliesTo.find((id) => id !== editSet.personId) : null
@@ -123,10 +127,10 @@ export function LoggingCard() {
   return (
     <div style={{ padding: '52px 0 14px', display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* header */}
-      <div style={{ padding: '4px 20px 14px' }}>
+      <div style={{ padding: '4px 20px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button onClick={() => nav('/session')} style={{ color: COLORS.textMuted }}>
-            <Icon name="chevronLeft" size={9} style={{ height: 16 }} />
+          <button onClick={() => nav('/session')} aria-label="Back to session" style={{ color: COLORS.text }}>
+            <Icon name="chevronLeft" size={10} style={{ height: 17 }} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
@@ -134,36 +138,54 @@ export function LoggingCard() {
               style={{
                 ...headerPill,
                 // tint the pill so a non-default variant is visible at a glance
-                border: variant !== 'normal' ? `1px solid ${COLORS.primary}` : headerPill.border,
-                color: variant !== 'normal' ? COLORS.primary : undefined,
+                borderColor: variant !== 'normal' ? COLORS.primary : COLORS.rule,
+                color: variant !== 'normal' ? COLORS.primaryText : COLORS.text,
               }}
             >
               {variantLabel(variant)}
-              <span style={{ color: COLORS.textMuted }}><Icon name="chevronDown" size={9} /></span>
+              <Icon name="chevronDown" size={9} />
             </button>
             {!isSingle ? (
               <button onClick={() => setModeOpen(true)} style={headerPill}>
                 {MODE_LABELS[se.loggingMode]}
-                <span style={{ color: COLORS.textMuted }}><Icon name="chevronDown" size={9} /></span>
+                <Icon name="chevronDown" size={9} />
               </button>
             ) : (
-              <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMuted }}>{people[0]?.name} only</span>
+              <span className="meta" style={{ color: COLORS.textSecondary }}>{people[0]?.name} only</span>
             )}
           </div>
-          <span style={{ color: COLORS.textMuted }}><Icon name="dots" size={18} /></span>
+          <span style={{ color: COLORS.text }}><Icon name="dots" size={16} /></span>
         </div>
-        <div style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 26, marginTop: 11, letterSpacing: '-.5px' }}>
+        <div
+          className="display"
+          style={{ fontSize: 30, marginTop: 12, textTransform: 'uppercase', lineHeight: 1.05 }}
+        >
           {exercise?.name}
         </div>
-        <div style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 2 }}>{exercise?.category}</div>
+        <div style={{ height: 3, background: COLORS.rule, margin: '8px 0 6px' }} />
+        <div className="meta" style={{ color: COLORS.textSecondary }}>{exercise?.category}</div>
       </div>
 
       {/* rows */}
-      <div className="scroll-area" style={{ flex: 1, padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
-        {people.map((person) => {
+      <div className="scroll-area" style={{ flex: 1, padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {people.map((person, idx) => {
           const isActive = se.activePersonId === person.id || isSingle
+          // The identity band sits on alternating sides so the composition
+          // itself reads as the phone being passed back and forth (guide §13).
+          const side = idx === 0 ? 'left' : 'right'
           if (isTurns && !isActive) {
-            return <WaitingRow key={person.id} state={state} session={session} se={se} variant={variant} person={person} now={now} />
+            return (
+              <WaitingRow
+                key={person.id}
+                state={state}
+                session={session}
+                se={se}
+                variant={variant}
+                person={person}
+                side={side}
+                now={now}
+              />
+            )
           }
           return (
             <ActiveRow
@@ -173,6 +195,7 @@ export function LoggingCard() {
               se={se}
               variant={variant}
               person={person}
+              side={side}
               isActive={isActive}
               isTurns={isTurns}
               isSingle={isSingle}
@@ -189,7 +212,7 @@ export function LoggingCard() {
         })}
 
         {/* secondary actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', padding: '6px 0', fontSize: 12, fontWeight: 600, color: COLORS.textMuted }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, padding: '2px 0 4px' }}>
           <ActionBtn icon="pencil" label="Notes" onClick={() => setNotesFor(se.activePersonId || people[0].id)} />
           <ActionBtn icon="skip" label="Skip" onClick={() => setSkipFor(se.activePersonId || people[0].id)} />
           <ActionBtn icon="swap" label="Substitute" onClick={() => setSubFor(se.activePersonId || people[0].id)} />
@@ -224,7 +247,7 @@ export function LoggingCard() {
             setModeOpen(false)
           }}
         />
-        <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 14, lineHeight: 1.45 }}>
+        <div style={sheetHelp}>
           <b>Alternate</b> shows both rows live and passes after each set. <b>Turns</b> shows one at a time.
           <b> Independent</b> never switches automatically.
         </div>
@@ -241,7 +264,7 @@ export function LoggingCard() {
             setVariantOpen(false)
           }}
         />
-        <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 14, lineHeight: 1.45 }}>
+        <div style={sheetHelp}>
           Each variant keeps its own history: last time, suggested values and set numbers
           only count sets logged under the selected variant.
         </div>
@@ -262,31 +285,42 @@ export function LoggingCard() {
                 style={{
                   width: '100%',
                   textAlign: 'left',
-                  background: '#fff',
-                  border: '1px solid rgba(15,17,21,.08)',
-                  borderRadius: 12,
+                  background: COLORS.card,
+                  border: `${BORDER}px solid ${COLORS.rule}`,
+                  borderRadius: RADII.md,
                   padding: '13px 14px',
-                  marginBottom: 16,
+                  marginBottom: 20,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
                 }}
               >
-                <span style={{ width: 34, height: 34, borderRadius: 10, background: '#F1F2F4', color: COLORS.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span
+                  style={{
+                    width: 36,
+                    height: 36,
+                    background: COLORS.text,
+                    color: COLORS.onDark,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
                   <Icon name="arrowRight" size={16} />
                 </span>
                 <span style={{ flex: 1 }}>
-                  <span style={{ display: 'block', fontWeight: 700, fontSize: 15 }}>Skip this turn</span>
-                  <span style={{ display: 'block', fontSize: 12.5, color: COLORS.textMuted, marginTop: 2 }}>
+                  <span className="display" style={{ display: 'block', fontSize: 16, textTransform: 'uppercase' }}>
+                    Skip this turn
+                  </span>
+                  <span style={{ display: 'block', fontSize: 13, color: COLORS.textSecondary, marginTop: 2 }}>
                     Pass to {otherName(people, se.activePersonId || skipFor)} — keep doing the exercise
                   </span>
                 </span>
               </button>
             )}
 
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: COLORS.textMuted, margin: '0 2px 10px' }}>
-              SKIP THE EXERCISE
-            </div>
+            <SectionLabel style={{ marginBottom: 12 }}>Skip the exercise</SectionLabel>
             {!isSingle && (
               <PersonPicker people={people} value={skipFor} onChange={setSkipFor} />
             )}
@@ -296,17 +330,17 @@ export function LoggingCard() {
               placeholder="Reason (optional) · e.g. shoulder"
               style={sheetInput}
             />
-            <button
+            <PrimaryButton
               onClick={() => {
                 dispatch({ type: 'SKIP_EXERCISE', payload: { sessionExerciseId: se.id, personId: skipFor, reason: skipReason } })
                 setSkipFor(null)
                 setSkipReason('')
                 nav('/session')
               }}
-              style={sheetPrimary}
+              style={{ marginTop: 14 }}
             >
               Skip exercise for {personById(state, skipFor)?.name}
-            </button>
+            </PrimaryButton>
           </>
         )}
       </Sheet>
@@ -316,7 +350,7 @@ export function LoggingCard() {
         {subFor && (
           <>
             {!isSingle && <PersonPicker people={people} value={subFor} onChange={setSubFor} />}
-            <div style={{ fontSize: 13, color: COLORS.textSecondary, margin: '4px 2px 10px' }}>
+            <div style={{ fontSize: 13, color: COLORS.textSecondary, margin: '0 0 12px' }}>
               {personById(state, subFor)?.name} will do this instead — just for today.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -329,13 +363,13 @@ export function LoggingCard() {
                       dispatch({ type: 'SUBSTITUTE_EXERCISE', payload: { sessionExerciseId: se.id, personId: subFor, substituteExerciseId: ex.id } })
                       setSubFor(null)
                     }}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: 12, padding: '13px 14px', border: '1px solid rgba(15,17,21,.06)' }}
+                    style={pickRow}
                   >
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>{ex.name}</div>
-                      <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>{ex.equipment || ex.category}</div>
+                      <div className="display" style={{ fontSize: 16, textTransform: 'uppercase' }}>{ex.name}</div>
+                      <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>{ex.equipment || ex.category}</div>
                     </div>
-                    <Icon name="chevronRight" size={8} />
+                    <Icon name="chevronRight" size={9} />
                   </button>
                 ))}
             </div>
@@ -347,7 +381,7 @@ export function LoggingCard() {
       <Sheet open={!!notesFor} onClose={() => setNotesFor(null)} title="Set note">
         {notesFor && (
           <>
-            <div style={{ fontSize: 13, color: COLORS.textSecondary, margin: '0 2px 10px' }}>
+            <div style={{ fontSize: 13, color: COLORS.textSecondary, margin: '0 0 12px' }}>
               Added to {personById(state, notesFor)?.name}'s next set.
             </div>
             <textarea
@@ -357,7 +391,7 @@ export function LoggingCard() {
               rows={3}
               style={{ ...sheetInput, resize: 'none' }}
             />
-            <button onClick={() => setNotesFor(null)} style={sheetPrimary}>Done</button>
+            <PrimaryButton onClick={() => setNotesFor(null)} style={{ marginTop: 14 }}>Done</PrimaryButton>
           </>
         )}
       </Sheet>
@@ -378,7 +412,7 @@ export function LoggingCard() {
   )
 }
 
-function ActiveRow({ state, session, se, variant, person, isActive, isTurns, isSingle, otherName, now, vals, onField, onLog, onRepeat, onEditSet, onActivate }) {
+function ActiveRow({ state, session, se, variant, person, side, isActive, isTurns, isSingle, otherName, now, vals, onField, onLog, onRepeat, onEditSet, onActivate }) {
   const pal = personPalette(person)
   const exId = effectiveExerciseId(se, person.id)
   const exercise = state.exercises[exId]
@@ -393,144 +427,162 @@ function ActiveRow({ state, session, se, variant, person, isActive, isTurns, isS
   const hasLast = !!(doneSets.slice(-1)[0] || lt)
 
   const subbed = se.perPerson[person.id]?.substituteExerciseId
+  const band = <IdentityBand person={person} active={isActive} width={32} side={side} />
 
   return (
     <div
       onClick={!isActive ? onActivate : undefined}
       style={{
-        background: '#fff',
-        borderRadius: 16,
-        // Use side-specific longhand (not the `border` shorthand) so it never
-        // conflicts with borderLeft when isActive toggles on rerender.
-        borderTop: isActive ? `1.5px solid ${pal.accent}` : '1px solid rgba(15,17,21,.06)',
-        borderRight: isActive ? `1.5px solid ${pal.accent}` : '1px solid rgba(15,17,21,.06)',
-        borderBottom: isActive ? `1.5px solid ${pal.accent}` : '1px solid rgba(15,17,21,.06)',
-        borderLeft: `4px solid ${pal.accent}`,
-        boxShadow: isActive ? `0 8px 22px ${pal.accent}1A` : 'none',
-        padding: 15,
+        display: 'flex',
+        background: COLORS.card,
+        border: `${isActive ? BORDER : 1}px solid ${isActive ? pal.accent : COLORS.ruleSoft}`,
+        borderRadius: RADII.md,
+        overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <Avatar person={person} size={27} radius={8} />
-        <span style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}>{person.name}</span>
-        <span style={{ fontSize: 13, color: COLORS.textMuted, fontWeight: 500 }}>Set {setNo}</span>
-        <div style={{ marginLeft: 'auto' }}>
-          <TimerBadge ts={ts} isActive={isActive} isTurns={isTurns} pal={pal} />
-        </div>
-      </div>
-
-      {subbed && (
-        <div style={{ marginTop: 10, fontSize: 12, color: '#C2570C', background: '#FBF1E9', padding: '6px 10px', borderRadius: 8 }}>
-          Doing {exercise?.name} instead today
-        </div>
-      )}
-
-      {/* this session */}
-      {doneSets.length > 0 && (
-        <div style={{ marginTop: 12, background: '#F4F5F7', borderRadius: 10, padding: '9px 11px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', color: COLORS.textMuted }}>
-              THIS SESSION
-            </span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textSecondary }}>{doneSets.length} sets</span>
-          </div>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-            {doneSets.map((s) => (
-              <button
-                key={s.id}
-                onClick={(e) => { e.stopPropagation(); onEditSet(s.id) }}
-                className="num"
-                style={{ fontSize: 12, fontWeight: 700, color: pal.text, background: pal.tint, padding: '3px 9px', borderRadius: 6, cursor: 'pointer' }}
+      {side === 'left' && band}
+      <div style={{ flex: 1, minWidth: 0, padding: 14 }}>
+        {/* who + which set + rest state */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="display" style={{ fontSize: 22, textTransform: 'uppercase', color: pal.text }}>
+              {person.name}
+            </div>
+            <div
+              className="num"
+              style={{ fontFamily: FONTS.heading, fontWeight: 700, fontSize: 14, letterSpacing: '0.06em', marginTop: 2 }}
+            >
+              SET {String(setNo).padStart(2, '0')}
+            </div>
+            {isActive && isTurns && (
+              <div
+                className="meta"
+                style={{
+                  display: 'inline-block',
+                  marginTop: 8,
+                  background: pal.accent,
+                  color: pal.onAccent,
+                  padding: '3px 8px',
+                }}
               >
-                {setChip(s, exercise)}
-              </button>
-            ))}
+                Your turn
+              </div>
+            )}
           </div>
-          <div style={{ fontSize: 10.5, color: COLORS.textMuted, marginTop: 6 }}>Tap a set to edit</div>
+          <TimerRing ts={ts} total={onThis ? timer.durationSeconds : 0} size={74} />
         </div>
-      )}
 
-      {/* last time */}
-      <div style={{ marginTop: 12, background: '#F4F5F7', borderRadius: 10, padding: '9px 11px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: lt ? 7 : 0 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', color: COLORS.textMuted }}>
-            {lt ? `LAST TIME · ${lt.label.toUpperCase()}` : 'NO PREVIOUS SETS'}
-          </span>
-          {lt && <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textSecondary }}>{lt.sets.length} sets</span>}
-        </div>
-        {lt && (
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-            {lt.sets.map((s) => (
-              <span key={s.id} className="num" style={{ fontSize: 12, fontWeight: 600, color: '#0F1115', background: '#fff', border: '1px solid rgba(15,17,21,.08)', padding: '2px 8px', borderRadius: 6 }}>
-                {setChip(s, exercise)}
-              </span>
-            ))}
+        {subbed && (
+          <div
+            className="meta"
+            style={{
+              marginTop: 10,
+              color: COLORS.text,
+              background: COLORS.warning,
+              padding: '5px 9px',
+              display: 'inline-block',
+            }}
+          >
+            Doing {exercise?.name} instead today
           </div>
         )}
-      </div>
 
-      {/* inputs */}
-      <div style={{ display: 'flex', gap: 9, marginTop: 12 }}>
-        {tracks.weight && (
-          <ValueInput label={person.unit} value={vals.weight} onChange={(v) => onField('weight', v)} step={2.5} accent={pal.accent} accentBorder={isActive} />
+        {/* this session — the count and the edit hint ride in the header rather
+            than costing two extra lines above the inputs */}
+        {doneSets.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <SectionLabel
+              action={
+                <span className="meta" style={{ color: COLORS.textSecondary }}>
+                  {doneSets.length} {doneSets.length === 1 ? 'set' : 'sets'} · tap to edit
+                </span>
+              }
+            >
+              This session
+            </SectionLabel>
+            <SetLedger
+              sets={doneSets}
+              exercise={exercise}
+              unit={person.unit}
+              palette={pal}
+              onEdit={onEditSet}
+            />
+          </div>
         )}
-        {tracks.reps && (
-          <ValueInput label="reps" value={vals.reps} onChange={(v) => onField('reps', v)} step={1} accent={pal.accent} accentBorder={isActive} />
-        )}
-        {tracks.duration && (
-          <ValueInput label="sec" value={vals.duration} onChange={(v) => onField('duration', v)} step={5} accent={pal.accent} accentBorder={isActive} />
-        )}
-      </div>
 
-      {/* log + repeat */}
-      <div style={{ display: 'flex', gap: 9, marginTop: 10 }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); onLog() }}
-          style={{
-            flex: 1,
-            height: 46,
-            borderRadius: 12,
-            background: pal.accent,
-            color: '#fff',
-            fontFamily: "'Archivo', sans-serif",
-            fontWeight: 700,
-            fontSize: 15,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            boxShadow: `0 4px 12px ${pal.shadow}`,
-          }}
-        >
-          {isTurns && !isSingle ? (
-            <>Log &amp; pass to {otherName} <Icon name="arrowRight" size={15} /></>
-          ) : (
-            <>Log for {person.name}</>
+        {/* last time */}
+        <div style={{ marginTop: 12 }}>
+          <SectionLabel
+            action={
+              lt ? (
+                <span className="meta" style={{ color: COLORS.textSecondary }}>{lt.sets.length} sets</span>
+              ) : null
+            }
+          >
+            {/* sessions with no label fall back to "Last" in selectors.js — don't
+                render that as the stuttering "LAST TIME · LAST" */}
+            {lt ? (lt.label === 'Last' ? 'Last time' : `Last time · ${lt.label}`) : 'No previous sets'}
+          </SectionLabel>
+          {lt && (
+            <SetLedger sets={lt.sets} exercise={exercise} unit={person.unit} palette={pal} muted />
           )}
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onRepeat() }}
-          disabled={!hasLast}
-          style={{
-            width: 48,
-            height: 46,
-            borderRadius: 12,
-            background: '#fff',
-            border: '1px solid rgba(15,17,21,.12)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: hasLast ? COLORS.textSecondary : '#CDD0D6',
-          }}
-        >
-          <Icon name="repeat" size={17} />
-        </button>
+        </div>
+
+        {/* inputs */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          {tracks.weight && (
+            <ValueInput label={person.unit} value={vals.weight} onChange={(v) => onField('weight', v)} step={2.5} accent={pal.accent} accentBorder={isActive} />
+          )}
+          {tracks.reps && (
+            <ValueInput label="reps" value={vals.reps} onChange={(v) => onField('reps', v)} step={1} accent={pal.accent} accentBorder={isActive} />
+          )}
+          {tracks.duration && (
+            <ValueInput label="sec" value={vals.duration} onChange={(v) => onField('duration', v)} step={5} accent={pal.accent} accentBorder={isActive} />
+          )}
+        </div>
+
+        {/* log + repeat */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <PrimaryButton
+            onClick={(e) => { e.stopPropagation(); onLog() }}
+            color={pal.accent}
+            pressColor={pal.press}
+            style={{ flex: 1, width: 'auto', minHeight: 48, fontSize: 16 }}
+          >
+            {isTurns && !isSingle ? (
+              <>Log &amp; pass to {otherName} <Icon name="arrowRight" size={15} /></>
+            ) : (
+              <>Log set · {person.name}</>
+            )}
+          </PrimaryButton>
+          <button
+            onClick={(e) => { e.stopPropagation(); onRepeat() }}
+            disabled={!hasLast}
+            aria-label="Repeat last set"
+            title="Repeat last set"
+            style={{
+              width: 48,
+              minHeight: 48,
+              borderRadius: RADII.md,
+              background: COLORS.card,
+              border: `${BORDER}px solid ${hasLast ? COLORS.rule : COLORS.disabled}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: hasLast ? COLORS.text : COLORS.disabled,
+              flexShrink: 0,
+            }}
+          >
+            <Icon name="repeat" size={18} />
+          </button>
+        </div>
       </div>
+      {side === 'right' && band}
     </div>
   )
 }
 
-function WaitingRow({ state, session, se, variant, person, now }) {
+function WaitingRow({ state, session, se, variant, person, side, now }) {
   const pal = personPalette(person)
   const exId = effectiveExerciseId(se, person.id)
   const done = sessionSets(session, se.id, person.id, variant)
@@ -539,62 +591,40 @@ function WaitingRow({ state, session, se, variant, person, now }) {
   const timer = session.timers[person.id]
   const onThis = timer && timer.sessionExerciseId === se.id
   const ts = onThis ? timerState(timer, now) : { state: 'ready' }
+  const band = <IdentityBand person={person} width={28} side={side} />
 
   return (
-    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(15,17,21,.06)', borderLeft: `4px solid ${pal.accent}`, padding: '14px 15px', display: 'flex', alignItems: 'center', gap: 11 }}>
-      <div style={{ width: 30, height: 30, borderRadius: 9, background: pal.tint, color: pal.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 13 }}>
-        {person.initials}
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}>{person.name}</span>
-          <span style={{ fontSize: 13, color: COLORS.textMuted, fontWeight: 500 }}>Set {setNo}</span>
+    <div
+      style={{
+        display: 'flex',
+        background: COLORS.card,
+        border: `1px solid ${COLORS.ruleSoft}`,
+        borderRadius: RADII.md,
+        overflow: 'hidden',
+      }}
+    >
+      {side === 'left' && band}
+      <div style={{ flex: 1, minWidth: 0, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="display" style={{ fontSize: 18, textTransform: 'uppercase', color: pal.text }}>
+            {person.name}
+          </div>
+          <div
+            className="num"
+            style={{ fontFamily: FONTS.heading, fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', marginTop: 1 }}
+          >
+            SET {String(setNo).padStart(2, '0')} · UP NEXT
+          </div>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 3 }}>
+            {last
+              ? `Just logged ${setSummary(last, state.exercises[exId], person.unit)}`
+              : 'Waiting for their turn'}
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>
-          {last ? `Just logged ${setChip(last, state.exercises[exId])} · waiting` : 'Waiting for their turn'}
-        </div>
+        <TimerRing ts={ts} total={onThis ? timer.durationSeconds : 0} size={62} stroke={5} />
       </div>
-      <div style={{ textAlign: 'right' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: COLORS.textSecondary, background: '#F1F2F4', padding: '5px 10px', borderRadius: 8 }}>
-          <span style={{ color: pal.text }}><Icon name="clock" size={12} /></span>
-          {ts.state === 'resting' ? formatDuration(ts.remaining) : 'ready'}
-        </span>
-        <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 5 }}>up next</div>
-      </div>
+      {side === 'right' && band}
     </div>
-  )
-}
-
-function TimerBadge({ ts, isActive, isTurns, pal }) {
-  if (isActive && isTurns) {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: pal.text, background: pal.tint, padding: '5px 10px', borderRadius: 8 }}>
-        <span style={{ width: 7, height: 7, borderRadius: '50%', background: pal.accent }} />
-        Your turn
-      </span>
-    )
-  }
-  if (ts.state === 'resting') {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: COLORS.textSecondary, background: '#F1F2F4', padding: '5px 10px', borderRadius: 8 }}>
-        <span style={{ color: pal.accent }}><Icon name="clock" size={12} /></span>
-        {formatDuration(ts.remaining)}
-      </span>
-    )
-  }
-  if (ts.state === 'overdue') {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#C2570C' }}>
-        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#E2702C' }} />
-        Overdue
-      </span>
-    )
-  }
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: COLORS.success }}>
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: COLORS.success }} />
-      Ready
-    </span>
   )
 }
 
@@ -613,9 +643,24 @@ function PersonPicker({ people, value, onChange }) {
 
 function ActionBtn({ icon, label, onClick }) {
   return (
-    <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 6, color: COLORS.textMuted, fontSize: 12, fontWeight: 600 }}>
-      <Icon name={icon} size={14} />
-      {label}
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 5,
+        padding: '9px 2px',
+        border: `${BORDER}px solid ${COLORS.ruleSoft}`,
+        borderRadius: RADII.sm,
+        color: COLORS.text,
+        background: COLORS.card,
+      }}
+    >
+      <Icon name={icon} size={15} />
+      {/* tight tracking so the longest label ("Substitute") still fits its cell */}
+      <span className="meta" style={{ fontSize: 9, letterSpacing: '0.02em' }}>{label}</span>
     </button>
   )
 }
@@ -630,39 +675,58 @@ function numOrNull(v) {
   return Number(v)
 }
 
-// Small pill buttons in the card header (variant / logging mode).
+// Small bordered blocks in the card header (variant / logging mode).
 const headerPill = {
   display: 'flex',
   alignItems: 'center',
   gap: 6,
-  padding: '7px 12px',
-  background: '#fff',
-  border: '1px solid rgba(15,17,21,.07)',
-  borderRadius: 9,
+  padding: '6px 10px',
+  background: COLORS.card,
+  border: `${BORDER}px solid ${COLORS.rule}`,
+  borderRadius: RADII.sm,
+  fontFamily: FONTS.heading,
   fontSize: 13,
   fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
 }
 
 // Shared styles for the bottom-sheet forms (skip / substitute / notes).
 const sheetInput = {
   width: '100%',
-  background: '#fff',
-  border: '1px solid rgba(15,17,21,.10)',
-  borderRadius: 12,
+  background: COLORS.card,
+  border: `${BORDER}px solid ${COLORS.rule}`,
+  borderRadius: RADII.sm,
   padding: '13px 14px',
   fontSize: 15,
   fontWeight: 500,
+  color: COLORS.text,
   outline: 'none',
 }
 
-const sheetPrimary = {
-  width: '100%',
-  height: 50,
-  marginTop: 12,
-  borderRadius: 13,
-  background: COLORS.primary,
-  color: '#fff',
-  fontFamily: "'Archivo', sans-serif",
+const sheetHelp = {
+  fontSize: 13,
+  color: COLORS.textSecondary,
+  marginTop: 14,
+  lineHeight: 1.5,
+}
+
+const pickRow = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  background: COLORS.card,
+  border: `${BORDER}px solid ${COLORS.ruleSoft}`,
+  borderRadius: RADII.sm,
+  padding: '12px 14px',
+}
+
+const backLinkStyle = {
+  fontFamily: FONTS.heading,
   fontWeight: 700,
-  fontSize: 16,
+  fontSize: 15,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: COLORS.primaryText,
+  borderBottom: `2px solid ${COLORS.primary}`,
 }

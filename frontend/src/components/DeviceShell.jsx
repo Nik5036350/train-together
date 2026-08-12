@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { StatusBar } from './StatusBar.jsx'
+import { COLORS } from '../theme.js'
 
 // Renders the app inside an iOS device bezel (dynamic island, status bar, home
 // indicator) on desktop, and full-bleed on small screens. The `dark` prop
@@ -73,7 +74,7 @@ export function DeviceShell({ children, dark = false }) {
               width: 139,
               height: 5,
               borderRadius: 100,
-              background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.22)',
+              background: dark ? 'rgba(241,230,208,0.7)' : 'rgba(24,24,22,0.28)',
             }}
           />
         </div>
@@ -87,7 +88,7 @@ export function DeviceShell({ children, dark = false }) {
         style={{
           position: 'fixed',
           inset: 0,
-          background: dark ? '#000' : '#F4F5F7',
+          background: dark ? COLORS.darkSurface : COLORS.appBg,
           overflow: 'hidden',
         }}
       >
@@ -98,25 +99,39 @@ export function DeviceShell({ children, dark = false }) {
 
   return (
     <div
+      className="grain"
       style={{
+        position: 'relative',
         minHeight: '100vh',
         width: '100%',
-        background: 'radial-gradient(120% 120% at 50% 0%, #ECEEF1 0%, #E3E5E9 100%)',
+        background: COLORS.appBg,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '32px 0',
+        overflow: 'hidden',
       }}
     >
+      {/* Constructivist backdrop: two opposed diagonals rather than a gradient. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background: `linear-gradient(114deg, ${COLORS.primary} 0 11%, transparent 11.2%),
+                       linear-gradient(296deg, ${COLORS.text} 0 9%, transparent 9.2%)`,
+        }}
+      />
       <div
         style={{
           position: 'relative',
           width: 402,
           height: 874,
-          borderRadius: 48,
+          borderRadius: 40,
           overflow: 'hidden',
-          background: dark ? '#000' : '#F4F5F7',
-          boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.10), 0 0 0 11px #0d0e10',
+          background: dark ? COLORS.darkSurface : COLORS.appBg,
+          boxShadow: `0 0 0 10px ${COLORS.text}`,
         }}
       >
         {content}

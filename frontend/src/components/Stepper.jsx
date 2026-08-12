@@ -1,11 +1,14 @@
-import { useRef } from 'react'
+import { useState } from 'react'
+import { BORDER, COLORS, FONTS, RADII } from '../theme.js'
 
-// The big tappable input wells used on the logging card. Tapping the value lets
-// you type; the −/+ controls step it. `accentBorder` highlights the well for the
-// active participant's row.
+// The big tappable input wells on the logging card, styled as functional
+// equipment labels (guide §11): uppercase label above the field, Canvas well,
+// 2px Ink border, and a focus ring in the active person's color. Tapping the
+// value lets you type; the −/+ blocks step it.
 export function ValueInput({ label, value, onChange, step = 1, min = 0, accent, accentBorder }) {
-  const inputRef = useRef(null)
+  const [focused, setFocused] = useState(false)
   const display = value === '' || value == null ? '' : value
+  const ring = focused && accent ? accent : accentBorder && accent ? accent : COLORS.rule
 
   const bump = (dir) => {
     const next = Math.max(min, round((Number(value) || 0) + dir * step))
@@ -13,25 +16,26 @@ export function ValueInput({ label, value, onChange, step = 1, min = 0, accent, 
   }
 
   return (
-    <div
-      style={{
-        flex: 1,
-        background: '#F4F5F7',
-        border: accentBorder
-          ? `1px solid ${accent}55`
-          : '1px solid rgba(15,17,21,.08)',
-        borderRadius: 12,
-        padding: '8px 10px 9px',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="meta" style={{ color: COLORS.textSecondary, marginBottom: 5, fontSize: 11 }}>
+        {label}
+      </div>
+      <div
+        style={{
+          background: COLORS.card,
+          border: `${BORDER}px solid ${ring}`,
+          borderRadius: RADII.sm,
+          padding: '6px 10px 8px',
+          // A focused field gains a second ring rather than a glow.
+          boxShadow: focused && accent ? `inset 0 0 0 2px ${accent}33` : 'none',
+        }}
+      >
         <input
-          ref={inputRef}
           className="num"
           inputMode="decimal"
           value={display}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           onChange={(e) => {
             const raw = e.target.value.replace(/[^0-9.]/g, '')
             onChange(raw === '' ? '' : Number(raw))
@@ -41,36 +45,42 @@ export function ValueInput({ label, value, onChange, step = 1, min = 0, accent, 
             border: 'none',
             outline: 'none',
             background: 'transparent',
-            fontFamily: "'Archivo', sans-serif",
-            fontWeight: 700,
-            fontSize: 25,
+            fontFamily: FONTS.heading,
+            fontWeight: 800,
+            fontSize: 30,
+            lineHeight: 1.1,
             padding: 0,
-            color: '#0F1115',
+            color: COLORS.text,
           }}
         />
-        <span style={{ fontSize: 13, color: '#9AA0AC', fontWeight: 600 }}>{label}</span>
-      </div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-        <StepBtn onClick={() => bump(-1)}>−</StepBtn>
-        <StepBtn onClick={() => bump(1)}>+</StepBtn>
+        <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
+          <StepBtn onClick={() => bump(-1)} ariaLabel={`Decrease ${label}`}>
+            −
+          </StepBtn>
+          <StepBtn onClick={() => bump(1)} ariaLabel={`Increase ${label}`}>
+            +
+          </StepBtn>
+        </div>
       </div>
     </div>
   )
 }
 
-function StepBtn({ children, onClick }) {
+function StepBtn({ children, onClick, ariaLabel }) {
   return (
     <button
       onClick={onClick}
+      aria-label={ariaLabel}
       style={{
         flex: 1,
-        height: 22,
-        borderRadius: 7,
-        background: '#fff',
-        border: '1px solid rgba(15,17,21,.08)',
-        fontSize: 15,
+        height: 26,
+        borderRadius: RADII.sm - 2,
+        background: COLORS.appBg,
+        border: `${BORDER}px solid ${COLORS.rule}`,
+        fontFamily: FONTS.heading,
+        fontSize: 16,
         fontWeight: 700,
-        color: '#5B616E',
+        color: COLORS.text,
         lineHeight: 1,
       }}
     >

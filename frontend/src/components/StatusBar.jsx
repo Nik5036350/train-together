@@ -1,6 +1,8 @@
+import { COLORS } from '../theme.js'
+
 // iOS status bar (time + signal/wifi/battery), ported from ios-frame.jsx.
 export function StatusBar({ dark = false, time = '9:41' }) {
-  const c = dark ? '#fff' : '#000'
+  const c = dark ? COLORS.onDark : COLORS.text
   return (
     <div
       style={{

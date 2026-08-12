@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
-import { personPalette } from '../theme.js'
+import { BORDER, COLORS, FONTS, RADII, personPalette } from '../theme.js'
 
-// Dark confirmation toast shown after every log action (PRD FR-106). Includes
-// Undo (and Edit, when an editor is wired). Auto-dismisses after a delay.
+// Confirmation toast shown after every log action (PRD FR-106), on an Ink
+// surface with a square swatch in the acting person's color. Includes Undo (and
+// Edit, when an editor is wired). Auto-dismisses after a delay.
 export function Snackbar({ snackbar, person, text, onUndo, onEdit, onDismiss }) {
   useEffect(() => {
     if (!snackbar) return undefined
@@ -16,25 +17,50 @@ export function Snackbar({ snackbar, person, text, onUndo, onEdit, onDismiss }) 
   return (
     <div
       style={{
-        background: '#16191F',
-        borderRadius: 12,
-        padding: '12px 14px',
+        background: COLORS.darkSurface,
+        border: `${BORDER}px solid ${COLORS.rule}`,
+        borderLeft: `6px solid ${pal.accent}`,
+        borderRadius: RADII.sm,
+        padding: '11px 13px',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        boxShadow: '0 8px 22px rgba(0,0,0,.18)',
-        animation: 'snackbar-in .2s ease',
+        animation: 'snackbar-in var(--motion-default) var(--ease-default)',
       }}
     >
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: pal.accent }} />
-      <span style={{ flex: 1, fontSize: 13, color: '#fff' }} dangerouslySetInnerHTML={{ __html: text }} />
+      <span
+        style={{ flex: 1, fontSize: 13, color: COLORS.onDark, lineHeight: 1.35 }}
+        dangerouslySetInnerHTML={{ __html: text }}
+      />
       {snackbar.undoable && (
-        <button onClick={onUndo} style={{ fontSize: 13, fontWeight: 700, color: '#86AEF7' }}>
+        <button
+          onClick={onUndo}
+          style={{
+            fontFamily: FONTS.heading,
+            fontSize: 14,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: COLORS.onDark,
+            borderBottom: `2px solid ${COLORS.primary}`,
+            paddingBottom: 1,
+          }}
+        >
           Undo
         </button>
       )}
       {onEdit && (
-        <button onClick={onEdit} style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.55)' }}>
+        <button
+          onClick={onEdit}
+          style={{
+            fontFamily: FONTS.heading,
+            fontSize: 14,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: COLORS.onDarkMuted,
+          }}
+        >
           Edit
         </button>
       )}

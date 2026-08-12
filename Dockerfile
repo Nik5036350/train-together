@@ -28,10 +28,10 @@ RUN cargo build --release
 # ---- Stage 3: runtime ----
 FROM scratch AS runtime
 WORKDIR /app
-COPY --from=builder /app/target/release/couples-recording /couples-recording
-# SQLite DB lives at /app/data/couples.db (created on boot). Mount a volume here
+COPY --from=builder /app/target/release/train-together /train-together
+# SQLite DB lives at /app/data/train-together.db (created on boot). Mount a volume
 # to persist workout data across container recreation.
 ENV TMPDIR=/app/data
 VOLUME ["/app/data"]
 EXPOSE 8080
-ENTRYPOINT ["/couples-recording"]
+ENTRYPOINT ["/train-together"]

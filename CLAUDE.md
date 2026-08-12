@@ -11,7 +11,7 @@ A strength workout logger for two people sharing one phone. React + Vite PWA fro
 Backend (from `backend/`):
 
 ```bash
-cargo run                                # start on port 8080; creates+seeds data/couples.db
+cargo run                                # start on port 8080; creates+seeds data/train-together.db
 cargo test                               # all tests live in src/tests.rs
 cargo test logging_switches             # run a single test by name substring
 cargo fmt --check                        # CI enforces formatting
@@ -31,7 +31,7 @@ There is no frontend test or lint script. For local development run the backend 
 Single-container build (frontend embedded in the Rust binary, served on 8080):
 
 ```bash
-docker compose up --build    # or: docker build -t couples . && docker run -p 8080:8080 -v couples-data:/app/data couples
+docker compose up --build    # or: docker build -t train-together . && docker run -p 8080:8080 -v train-together-data:/app/data train-together
 ```
 
 ## Architecture: thin client, full-state responses
@@ -50,7 +50,7 @@ Backend tests are integration-style: they build the real router against in-memor
 ## Static serving and deployment
 
 - The Dockerfile builds the frontend, copies `dist/` into `backend/static/`, and `rust-embed` bakes it into a static musl binary (`FROM scratch` final image). The axum router's fallback serves these embedded assets.
-- Vite `base` defaults to `/couples-recording-mode/` for GitHub Pages; the Docker build overrides with `VITE_BASE=/`. The app uses `HashRouter`, so no server-side route handling is needed.
+- Vite `base` defaults to `/train-together/` for GitHub Pages; the Docker build overrides with `VITE_BASE=/`. The app uses `HashRouter`, so no server-side route handling is needed.
 - The GitHub Pages workflow deploys only the frontend, which is non-functional without a separately hosted backend (`VITE_API_URL`). The Docker image is the real single-artifact deployment.
 
 ## Gotchas

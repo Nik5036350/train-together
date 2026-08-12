@@ -1,4 +1,4 @@
-# Couples Recording Mode
+# Train Together
 
 A strength workout logger for two people sharing one phone. Originally a
 browser-only PWA; now a full-stack app.
@@ -21,7 +21,7 @@ cd backend
 cargo run          # or: cargo test
 ```
 
-The SQLite database is created at `backend/data/couples.db` on first run and
+The SQLite database is created at `backend/data/train-together.db` on first run and
 seeded with the demo couple (Alex & Maria) and a "Push Day" routine.
 
 ### Frontend (port 5173)
@@ -42,12 +42,12 @@ both the UI and the API from port 8080. The final image runs `FROM scratch` and
 is only ~6 MB:
 
 ```bash
-docker build -t couples .
-docker run --rm -p 8080:8080 -v couples-data:/app/data couples
+docker build -t train-together .
+docker run --rm -p 8080:8080 -v train-together-data:/app/data train-together
 ```
 
-Then open <http://localhost:8080/>. The `-v couples-data:/app/data` volume keeps
-the SQLite database (`/app/data/couples.db`) across container restarts.
+Then open <http://localhost:8080/>. The `-v train-together-data:/app/data` volume
+keeps the SQLite database (`/app/data/train-together.db`) across container restarts.
 
 Or with Compose:
 

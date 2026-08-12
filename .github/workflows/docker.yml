@@ -79,7 +79,7 @@ jobs:
       - name: Bump gym image tag
         run: |
           TAG="sha-${GITHUB_SHA::7}"   # matches docker/metadata-action type=sha
-          sed -i -E "s#(image: ghcr.io/nik5036350/couples-recording-mode):.*#\1:${TAG}#" infra/gym.yaml
+          sed -i -E "s#(image: ghcr.io/nik5036350/train-together):.*#\1:${TAG}#" infra/gym.yaml
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add infra/gym.yaml

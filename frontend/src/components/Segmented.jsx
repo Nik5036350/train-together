@@ -1,26 +1,38 @@
-// Segmented control. Two visual variants:
-//  - 'pill'  : light grey track with a white selected pill (unit toggle)
-//  - 'cards' : separate rounded buttons, selected one is dark (logging style)
+import { BORDER, COLORS, FONTS, RADII } from '../theme.js'
+
+// Segmented controls carry unit, mode and person selection (guide §11). Two
+// visual variants, both flat and bordered — no pills, no sliding thumb:
+//  - 'pill'  : one bordered track, the selected cell filled with Ink
+//  - 'cards' : separate bordered blocks, the selected one filled with Ink
 export function Segmented({ options, value, onChange, variant = 'pill' }) {
+  const label = {
+    fontFamily: FONTS.heading,
+    fontWeight: 700,
+    fontSize: 14,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    textAlign: 'center',
+  }
+
   if (variant === 'cards') {
     return (
-      <div style={{ display: 'flex', gap: 9 }}>
+      <div style={{ display: 'flex', gap: 8 }}>
         {options.map((o) => {
           const selected = o.value === value
           return (
             <button
               key={o.value}
               onClick={() => onChange(o.value)}
+              aria-pressed={selected}
               style={{
+                ...label,
                 flex: 1,
-                padding: 12,
-                borderRadius: 11,
-                background: selected ? '#0F1115' : '#fff',
-                color: selected ? '#fff' : '#5B616E',
-                border: selected ? 'none' : '1px solid rgba(15,17,21,.10)',
-                fontWeight: selected ? 700 : 600,
-                fontSize: 14,
-                textAlign: 'center',
+                minHeight: 44,
+                padding: '10px 8px',
+                borderRadius: RADII.md,
+                background: selected ? COLORS.text : COLORS.card,
+                color: selected ? COLORS.onDark : COLORS.text,
+                border: `${BORDER}px solid ${COLORS.rule}`,
               }}
             >
               {o.label}
@@ -32,23 +44,30 @@ export function Segmented({ options, value, onChange, variant = 'pill' }) {
   }
 
   return (
-    <div style={{ display: 'flex', background: '#E9EAEC', borderRadius: 11, padding: 3 }}>
-      {options.map((o) => {
+    <div
+      style={{
+        display: 'flex',
+        background: COLORS.card,
+        border: `${BORDER}px solid ${COLORS.rule}`,
+        borderRadius: RADII.md,
+        overflow: 'hidden',
+      }}
+    >
+      {options.map((o, i) => {
         const selected = o.value === value
         return (
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
+            aria-pressed={selected}
             style={{
+              ...label,
               flex: 1,
-              textAlign: 'center',
-              padding: 9,
-              borderRadius: 8,
-              background: selected ? '#fff' : 'transparent',
-              fontWeight: selected ? 700 : 600,
-              fontSize: 14,
-              color: selected ? '#0F1115' : '#9AA0AC',
-              boxShadow: selected ? '0 1px 2px rgba(0,0,0,.06)' : 'none',
+              minHeight: 40,
+              padding: '9px 6px',
+              background: selected ? COLORS.text : 'transparent',
+              color: selected ? COLORS.onDark : COLORS.textSecondary,
+              borderLeft: i === 0 ? 'none' : `${BORDER}px solid ${COLORS.rule}`,
             }}
           >
             {o.label}

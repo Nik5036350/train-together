@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../store/AppContext.jsx'
-import { COLORS } from '../theme.js'
+import { COLORS, RADII, BORDER } from '../theme.js'
 import { Icon } from '../components/Icon.jsx'
 import { Sheet } from '../components/Sheet.jsx'
+import { SectionLabel } from '../components/SectionLabel.jsx'
+import { PrimaryButton, DangerButton } from '../components/Button.jsx'
 
 const TRACK_KEYS = [
   { key: 'weight', label: 'Weight' },
@@ -64,27 +66,33 @@ export function ExerciseCreate() {
 
   return (
     <div style={{ padding: '54px 0 30px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '0 22px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <button onClick={() => nav(-1)} style={{ color: COLORS.textMuted, fontSize: 15 }}>
-          Cancel
-        </button>
-        <span style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 17 }}>
-          {editing ? 'Edit exercise' : 'New exercise'}
-        </span>
-        <button onClick={save} style={{ color: COLORS.primary, fontSize: 15, fontWeight: 700, opacity: name.trim() ? 1 : 0.4 }}>
-          Save
-        </button>
+      <div style={{ padding: '0 20px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button onClick={() => nav(-1)} className="meta" style={{ color: COLORS.textSecondary }}>
+            Cancel
+          </button>
+          <span className="meta">{editing ? 'Edit exercise' : 'New exercise'}</span>
+          <button
+            onClick={save}
+            className="meta"
+            style={{ color: COLORS.primaryText, opacity: name.trim() ? 1 : 0.4 }}
+          >
+            Save
+          </button>
+        </div>
+        <div style={{ height: 3, background: COLORS.rule, marginTop: 12 }} />
       </div>
 
       <div className="scroll-area" style={{ flex: 1, padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <SectionLabel>EXERCISE</SectionLabel>
-          <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(15,17,21,.05)' }}>
+          <SectionLabel style={{ marginBottom: 10 }}>Exercise</SectionLabel>
+          <div style={{ background: COLORS.card, borderRadius: RADII.sm, overflow: 'hidden', border: `${BORDER}px solid ${COLORS.rule}` }}>
             <div style={{ padding: '13px 15px' }}>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Exercise name · e.g. Lat Pulldown"
+                aria-label="Exercise name"
                 autoFocus={!editing}
                 style={{
                   width: '100%',
@@ -93,11 +101,12 @@ export function ExerciseCreate() {
                   background: 'transparent',
                   fontWeight: 600,
                   fontSize: 16,
+                  color: COLORS.text,
                 }}
               />
             </div>
-            <div style={{ padding: '13px 15px', borderTop: '1px solid rgba(15,17,21,.06)' }}>
-              <div style={{ color: COLORS.textSecondary, fontSize: 15, marginBottom: 10 }}>Tracks</div>
+            <div style={{ padding: '13px 15px', borderTop: `${BORDER}px solid ${COLORS.rule}` }}>
+              <div className="meta" style={{ color: COLORS.textSecondary, marginBottom: 10 }}>Tracks</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {TRACK_KEYS.map(({ key, label }) => {
                   const on = tracks[key]
@@ -105,16 +114,17 @@ export function ExerciseCreate() {
                     <button
                       key={key}
                       onClick={() => toggleTrack(key)}
+                      aria-pressed={on}
+                      className="meta"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        padding: '7px 12px',
-                        borderRadius: 9,
-                        background: on ? '#0F1115' : '#EDEEF0',
-                        color: on ? '#fff' : '#9AA0AC',
-                        fontSize: 13,
-                        fontWeight: 600,
+                        padding: '8px 12px',
+                        borderRadius: RADII.sm,
+                        background: on ? COLORS.text : COLORS.appBg,
+                        color: on ? COLORS.onDark : COLORS.textSecondary,
+                        border: `${BORDER}px solid ${on ? COLORS.rule : COLORS.ruleSoft}`,
                       }}
                     >
                       {on && <Icon name="check" size={11} />}
@@ -127,32 +137,20 @@ export function ExerciseCreate() {
           </div>
         </div>
 
-        <div style={{ fontSize: 12.5, color: COLORS.textMuted, lineHeight: 1.45, margin: '-4px 6px 0' }}>
+        <div style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.5, margin: '-4px 2px 0' }}>
           No targets, sets or weights up front — just pick what this exercise tracks and log it live as
           you train. Each person keeps their own separate history automatically.
         </div>
 
         {editing && (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            style={{
-              marginTop: 4,
-              height: 48,
-              borderRadius: 12,
-              background: '#fff',
-              border: '1px solid rgba(214,51,108,.25)',
-              color: '#D6336C',
-              fontWeight: 700,
-              fontSize: 15,
-            }}
-          >
+          <DangerButton onClick={() => setConfirmDelete(true)} style={{ marginTop: 4 }}>
             Delete exercise
-          </button>
+          </DangerButton>
         )}
       </div>
 
       <Sheet open={confirmDelete} onClose={() => setConfirmDelete(false)} title={`Delete ${editing?.name}?`}>
-        <div style={{ fontSize: 14, color: COLORS.textSecondary, lineHeight: 1.5, marginBottom: 16 }}>
+        <div style={{ fontSize: 14, color: COLORS.textSecondary, lineHeight: 1.5, marginBottom: 20 }}>
           This removes the exercise from your library.
           {usedIn.length > 0 && (
             <>
@@ -162,24 +160,15 @@ export function ExerciseCreate() {
           )}{' '}
           Past logged sets stay in history.
         </div>
+        <PrimaryButton onClick={remove}>Delete exercise</PrimaryButton>
         <button
-          onClick={remove}
-          style={{ width: '100%', height: 50, borderRadius: 13, background: '#D6336C', color: '#fff', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}
+          onClick={() => setConfirmDelete(false)}
+          className="meta"
+          style={{ width: '100%', padding: 14, marginTop: 8, color: COLORS.textSecondary }}
         >
-          Delete exercise
-        </button>
-        <button onClick={() => setConfirmDelete(false)} style={{ width: '100%', padding: 12, marginTop: 8, fontWeight: 600, color: COLORS.textMuted }}>
           Keep it
         </button>
       </Sheet>
-    </div>
-  )
-}
-
-function SectionLabel({ children }) {
-  return (
-    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: COLORS.textMuted, margin: '0 6px 8px' }}>
-      {children}
     </div>
   )
 }

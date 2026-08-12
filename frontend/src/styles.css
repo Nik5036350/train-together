@@ -1,3 +1,60 @@
+/*
+ * Global tokens for the Constructivist visual system (see
+ * styleguide/train-together-style-guide.md §34). Screens style
+ * themselves with inline styles reading src/theme.js — these custom properties
+ * carry the same values for the handful of things only CSS can do (page
+ * background, keyframes, focus rings, texture).
+ */
+:root {
+  /* Brand */
+  --red-500: #c92c1c;
+  --red-700: #8f1e16;
+
+  --ink: #181816;
+  --paper: #f1e6d0;
+  --canvas: #faf5ea;
+  --concrete: #a69d8d;
+
+  --steel: #3f6070;
+  --mustard: #c48a28;
+  --field-green: #52634b;
+
+  /* Text — see the note in theme.js on why secondary text is not Concrete. */
+  --ink-60: #6b665c;
+  --ink-50: #7d776b;
+
+  /* Semantic */
+  --person-a: var(--red-500);
+  --person-b: var(--steel);
+  --state-resting: var(--steel);
+  --state-ready: var(--field-green);
+  --state-overdue: var(--red-500);
+  --state-warning: var(--mustard);
+
+  /* Geometry */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --border-width: 2px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Motion */
+  --motion-fast: 120ms;
+  --motion-default: 160ms;
+  --motion-slow: 180ms;
+  --ease-default: ease-out;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -7,9 +64,10 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
-  color: #0f1115;
+  background: var(--paper);
+  color: var(--ink);
 }
 
 #root {
@@ -25,8 +83,15 @@ button {
   padding: 0;
 }
 
-input {
+input,
+textarea {
   font-family: inherit;
+}
+
+/* Keyboard focus stays visible — the system has no hover states to fall back on. */
+:focus-visible {
+  outline: var(--border-width) solid var(--ink);
+  outline-offset: 2px;
 }
 
 /* Tabular numerals for any value that must stay aligned (timers, weights, reps). */
@@ -35,11 +100,42 @@ input {
   font-feature-settings: 'tnum';
 }
 
-/* Inline-centered icon wrapper — matches the design's .ico helper. */
+/* Condensed display face — timers, weights, set counts, headings. */
+.display {
+  font-family: 'Roboto Condensed', 'IBM Plex Sans Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Uppercase utility label (guide §5.3 "Meta"). */
+.meta {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Inline-centered icon wrapper. */
 .ico {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/*
+ * Subtle warm paper grain (guide §18). Applied only to brand surfaces — the
+ * desktop backdrop, the summary hero and empty states — never behind dense
+ * workout logs, forms or tables, where it would cost legibility. The host
+ * element must already establish a containing block.
+ */
+.grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
 /* Hide scrollbars inside the phone frame while keeping scroll behaviour. */
@@ -53,7 +149,7 @@ input {
 
 /*
  * Keep list items at their natural height so the scroll area actually scrolls.
- * Without this, flex items with `overflow:hidden` (e.g. rounded cards) get an
+ * Without this, flex items with `overflow:hidden` (e.g. bordered blocks) get an
  * automatic min-size of 0 and collapse to nothing when content overflows a
  * column flex container, instead of the container scrolling. Children that opt
  * into flexing (inline `flex: 1`) override this and still grow/shrink.
@@ -62,9 +158,12 @@ input {
   flex-shrink: 0;
 }
 
+/*
+ * Motion is mechanical: slide, wipe, snap — no spring or bounce (guide §21).
+ */
 @keyframes snackbar-in {
   from {
-    transform: translateY(20px);
+    transform: translateY(12px);
     opacity: 0;
   }
   to {
@@ -88,5 +187,25 @@ input {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* The identity band slides across when the active person changes (guide §21). */
+@keyframes band-in {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

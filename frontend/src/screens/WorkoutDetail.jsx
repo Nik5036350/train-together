@@ -3,12 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../store/AppContext.jsx'
 import { personById } from '../store/reducer.js'
 import { personTotals } from '../lib/selectors.js'
-import { setChip, formatDate, formatElapsed, trimNum } from '../lib/format.js'
-import { personPalette, COLORS } from '../theme.js'
+import { formatDate, formatElapsed, trimNum } from '../lib/format.js'
+import { personPalette, COLORS, RADII } from '../theme.js'
 import { Avatar } from '../components/Avatar.jsx'
-import { Icon } from '../components/Icon.jsx'
 import { EditSetSheet } from '../components/EditSetSheet.jsx'
 import { Sheet } from '../components/Sheet.jsx'
+import { SectionLabel } from '../components/SectionLabel.jsx'
+import { StatBlock } from '../components/StatBlock.jsx'
+import { SetLedger } from '../components/SetLedger.jsx'
+import { DangerButton, PrimaryButton } from '../components/Button.jsx'
 import { variantLabel } from '../lib/variants.js'
 
 export function WorkoutDetail() {
@@ -22,8 +25,16 @@ export function WorkoutDetail() {
   if (!session) {
     return (
       <div style={{ padding: '120px 30px', textAlign: 'center' }}>
-        <div style={{ fontSize: 16, color: COLORS.textSecondary, marginBottom: 16 }}>Workout not found.</div>
-        <button onClick={() => nav('/history')} style={{ color: COLORS.primary, fontWeight: 700 }}>Past workouts</button>
+        <div className="display" style={{ fontSize: 22, textTransform: 'uppercase', marginBottom: 16 }}>
+          Workout not found
+        </div>
+        <button
+          onClick={() => nav('/history')}
+          className="meta"
+          style={{ color: COLORS.primaryText, borderBottom: `2px solid ${COLORS.primaryText}`, paddingBottom: 2 }}
+        >
+          Past workouts
+        </button>
       </div>
     )
   }
@@ -53,26 +64,25 @@ export function WorkoutDetail() {
 
   return (
     <div style={{ padding: '54px 0 30px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '0 22px 14px' }}>
-        <button onClick={() => nav('/history')} style={{ color: COLORS.textMuted, fontSize: 15 }}>
-          Past workouts
+      <div style={{ padding: '0 20px 12px' }}>
+        <button onClick={() => nav('/history')} className="meta" style={{ color: COLORS.textSecondary }}>
+          ← Past workouts
         </button>
-        <div style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 24, marginTop: 8, letterSpacing: '-.3px' }}>
+        <div className="display" style={{ fontSize: 28, textTransform: 'uppercase', marginTop: 8, lineHeight: 1.02 }}>
           {session.name}
         </div>
-        <div style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 3 }}>{formatDate(session.startTime)}</div>
+        <div style={{ height: 3, background: COLORS.rule, margin: '10px 0 8px' }} />
+        <div className="meta" style={{ color: COLORS.textSecondary }}>{formatDate(session.startTime)}</div>
       </div>
 
-      <div className="scroll-area" style={{ flex: 1, padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
-        {/* shared hero */}
-        <div style={{ background: COLORS.darkSurface, borderRadius: 16, padding: 16, color: '#fff' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: 'rgba(255,255,255,.45)', marginBottom: 13 }}>
-            SHARED SESSION
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Stat value={duration} label="duration" dark />
-            <Stat value={exerciseCount} label="exercises" dark />
-            <Stat value={session.sets.length} label="total sets" dark />
+      <div className="scroll-area" style={{ flex: 1, padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* shared session figures */}
+        <div style={{ background: COLORS.darkSurface, borderRadius: RADII.sm, padding: '15px 16px' }}>
+          <SectionLabel tone="dark" style={{ marginBottom: 12 }}>Shared session</SectionLabel>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <StatBlock value={duration} label="duration" tone="dark" size={26} />
+            <StatBlock value={exerciseCount} label="exercises" tone="dark" size={26} />
+            <StatBlock value={session.sets.length} label="total sets" tone="dark" size={26} />
           </div>
         </div>
 
@@ -81,40 +91,53 @@ export function WorkoutDetail() {
           const pal = personPalette(person)
           const t = personTotals(session, person.id, state.exercises)
           return (
-            <div key={person.id} style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(15,17,21,.05)', borderLeft: `3px solid ${pal.accent}`, padding: 15 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 13 }}>
-                <Avatar person={person} size={26} radius={8} />
-                <span style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}>{person.name}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <Stat value={t.exercises} label="exercises" />
-                <Stat value={t.sets} label="sets" />
-                <Stat value={`${trimNum(t.volume)} ${person.unit}`} label="volume" flex={1.4} />
+            <div
+              key={person.id}
+              style={{
+                display: 'flex',
+                background: COLORS.card,
+                border: `1px solid ${COLORS.ruleSoft}`,
+                borderLeft: `6px solid ${pal.accent}`,
+                borderRadius: RADII.sm,
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0, padding: '13px 15px' }}>
+                <div className="display" style={{ fontSize: 17, textTransform: 'uppercase', color: pal.text, marginBottom: 10 }}>
+                  {person.name}
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <StatBlock value={t.exercises} label="exercises" size={22} />
+                  <StatBlock value={t.sets} label="sets" size={22} />
+                  <StatBlock value={trimNum(t.volume)} label={`volume ${person.unit}`} size={22} flex={1.4} />
+                </div>
               </div>
             </div>
           )
         })}
 
         {/* per-exercise breakdown */}
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '8px 4px 0' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.6px', color: COLORS.textMuted }}>EXERCISES</span>
-          <span style={{ fontSize: 10.5, color: COLORS.textMuted }}>Tap a set to edit</span>
-        </div>
+        <SectionLabel
+          style={{ marginTop: 6 }}
+          action={<span className="meta" style={{ fontSize: 10, color: COLORS.textMuted }}>Tap a set to edit</span>}
+        >
+          Exercises
+        </SectionLabel>
         {order.map((exId) => {
           const exercise = state.exercises[exId]
           return (
-            <div key={exId} style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(15,17,21,.05)', padding: '13px 14px' }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>
+            <div key={exId} style={{ background: COLORS.card, borderRadius: RADII.sm, border: `1px solid ${COLORS.ruleSoft}`, padding: '12px 14px' }}>
+              <div className="display" style={{ fontSize: 16, textTransform: 'uppercase', marginBottom: 8 }}>
                 {exercise?.name || 'Removed exercise'}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {people.map((person) => {
                   const sets = session.sets
                     .filter((s) => s.exerciseId === exId && s.personId === person.id)
                     .sort((a, b) => a.setIndex - b.setIndex)
                   if (sets.length === 0) return null
                   const pal = personPalette(person)
-                  // One chip row per training variant, in first-appearance order;
+                  // One ledger per training variant, in first-appearance order;
                   // sets from before the feature count as "normal".
                   const groups = []
                   sets.forEach((s) => {
@@ -124,29 +147,25 @@ export function WorkoutDetail() {
                     else groups.push({ variant: v, sets: [s] })
                   })
                   return groups.map((g, gi) => (
-                    <div key={`${person.id}_${g.variant}`} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      {gi === 0 ? (
-                        <Avatar person={person} size={22} radius={6} fontSize={11} />
-                      ) : (
-                        <span style={{ width: 22, flexShrink: 0 }} />
-                      )}
-                      {g.variant !== 'normal' && (
-                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.5px', color: COLORS.textMuted, textTransform: 'uppercase' }}>
-                          {variantLabel(g.variant)}
+                    <div key={`${person.id}_${g.variant}`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                        {gi === 0 ? (
+                          <Avatar person={person} size={17} fontSize={10} />
+                        ) : (
+                          <span style={{ width: 17, flexShrink: 0 }} />
+                        )}
+                        <span className="meta" style={{ fontSize: 10, color: pal.text }}>
+                          {person.name}
+                          {g.variant !== 'normal' ? ` · ${variantLabel(g.variant)}` : ''}
                         </span>
-                      )}
-                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', flex: 1 }}>
-                        {g.sets.map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => setEditingSetId(s.id)}
-                            className="num"
-                            style={{ fontSize: 12, fontWeight: 600, color: pal.text, background: pal.tint, padding: '3px 9px', borderRadius: 6, cursor: 'pointer' }}
-                          >
-                            {setChip(s, exercise)}
-                          </button>
-                        ))}
                       </div>
+                      <SetLedger
+                        sets={g.sets}
+                        exercise={exercise}
+                        unit={person.unit}
+                        palette={pal}
+                        onEdit={setEditingSetId}
+                      />
                     </div>
                   ))
                 })}
@@ -155,37 +174,23 @@ export function WorkoutDetail() {
           )
         })}
 
-        <button
-          onClick={() => setConfirmDelete(true)}
-          style={{
-            marginTop: 4,
-            height: 48,
-            borderRadius: 12,
-            background: '#fff',
-            border: '1px solid rgba(214,51,108,.25)',
-            color: '#D6336C',
-            fontWeight: 700,
-            fontSize: 15,
-            flexShrink: 0,
-          }}
-        >
+        <DangerButton onClick={() => setConfirmDelete(true)} style={{ marginTop: 4, flexShrink: 0 }}>
           Delete workout
-        </button>
+        </DangerButton>
       </div>
 
       <Sheet open={confirmDelete} onClose={() => setConfirmDelete(false)} title={`Delete ${session.name}?`}>
-        <div style={{ fontSize: 14, color: COLORS.textSecondary, lineHeight: 1.5, marginBottom: 16 }}>
+        <div style={{ fontSize: 14, color: COLORS.textSecondary, lineHeight: 1.5, marginBottom: 20 }}>
           This permanently removes this workout and all {session.sets.length}{' '}
           {session.sets.length === 1 ? 'set' : 'sets'} logged in it. Your exercises and routines stay
           intact, but the &ldquo;last time&rdquo; hints while logging will fall back to an earlier session.
         </div>
+        <PrimaryButton onClick={remove}>Delete workout</PrimaryButton>
         <button
-          onClick={remove}
-          style={{ width: '100%', height: 50, borderRadius: 13, background: '#D6336C', color: '#fff', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}
+          onClick={() => setConfirmDelete(false)}
+          className="meta"
+          style={{ width: '100%', padding: 14, marginTop: 8, color: COLORS.textSecondary }}
         >
-          Delete workout
-        </button>
-        <button onClick={() => setConfirmDelete(false)} style={{ width: '100%', padding: 12, marginTop: 8, fontWeight: 600, color: COLORS.textMuted }}>
           Keep it
         </button>
       </Sheet>
@@ -201,17 +206,6 @@ export function WorkoutDetail() {
         onReassign={(toPersonId) => { dispatch({ type: 'REASSIGN_HISTORY_SET', payload: { sessionId: session.id, setId: editingSetId, toPersonId } }); setEditingSetId(null) }}
         onDelete={() => { dispatch({ type: 'DELETE_HISTORY_SET', payload: { sessionId: session.id, setId: editingSetId } }); setEditingSetId(null) }}
       />
-    </div>
-  )
-}
-
-function Stat({ value, label, dark, flex = 1 }) {
-  return (
-    <div style={{ flex }}>
-      <div className="num" style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: dark ? 22 : 19 }}>
-        {value}
-      </div>
-      <div style={{ fontSize: 11, color: dark ? 'rgba(255,255,255,.45)' : COLORS.textMuted, marginTop: 2 }}>{label}</div>
     </div>
   )
 }

@@ -6,7 +6,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - couples-data:/app/data
+      - train-together-data:/app/data
 
 volumes:
-  couples-data:
+  train-together-data:

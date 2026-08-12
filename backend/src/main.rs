@@ -16,7 +16,7 @@ async fn main() {
     std::fs::create_dir_all("data").ok();
 
     let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "sqlite://./data/couples.db?mode=rwc".to_string());
+        .unwrap_or_else(|_| "sqlite://./data/train-together.db?mode=rwc".to_string());
     let db = db::connect(&url)
         .await
         .expect("failed to connect to database");
@@ -30,6 +30,6 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("failed to bind");
-    println!("Couples Recording backend listening on {addr}");
+    println!("Train Together backend listening on {addr}");
     axum::serve(listener, app).await.expect("server error");
 }

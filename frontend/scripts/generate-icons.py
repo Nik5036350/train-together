@@ -26,7 +26,7 @@ SPLASH_DIR = PUBLIC / "splash"
 
 RED = (0xBE, 0x20, 0x1C)  # badge red, sampled from the source
 WHITE = (0xFF, 0xFF, 0xFF)
-BACKGROUND = (0xF4, 0xF5, 0xF7)  # matches manifest background_color
+BACKGROUND = (0xF1, 0xE6, 0xD0)  # Paper — matches manifest background_color
 
 # Distinct portrait viewports across the supported iPhone range. Several models
 # share a viewport (13 mini and 11 Pro are both 375x812@3), so one file serves

@@ -1,10 +1,11 @@
-# Couples Recording Mode
+# Train Together
 
 A strength-workout logger built for **two people training on one phone** — one shared
-session, two completely separate histories. Implements the "Couples Recording Mode" PRD
-and the Claude Design handoff mockups.
+session, two completely separate histories. Implements the original "Couples Recording Mode" PRD
+and the Constructivist style guide in `styleguide/`.
 
-Owner = **Alex** (blue), Partner = **Maria** (orange).
+The two participants are identified by Revolution Red and Steel Blue (see
+`styleguide/train-together-style-guide.md` §4.2).
 
 ## Run
 

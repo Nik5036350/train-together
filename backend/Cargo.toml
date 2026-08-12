@@ -1,10 +1,10 @@
 [package]
-name = "couples-recording"
+name = "train-together"
 version = "1.0.0"
 edition = "2021"
 
 [[bin]]
-name = "couples-recording"
+name = "train-together"
 path = "src/main.rs"
 
 [dependencies]

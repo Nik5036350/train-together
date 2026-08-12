@@ -1,23 +1,25 @@
-import { personPalette } from '../theme.js'
+import { BORDER, COLORS, FONTS, RADII, personPalette } from '../theme.js'
 
-// Rounded-square initial chip in the person's identity color (PRD: identity must
-// never rely on color alone — the initial is always shown).
-export function Avatar({ person, size = 27, radius, fontSize, style }) {
+// Square initial block in the person's identity color. Identity must never rely
+// on color alone, so the initial is always shown. Square, not round: circles are
+// reserved for timers and focus in this system (guide §3).
+export function Avatar({ person, size = 28, radius = RADII.sm, fontSize, style }) {
   const pal = personPalette(person)
   return (
     <div
       style={{
         width: size,
         height: size,
-        borderRadius: radius ?? Math.round(size * 0.3),
+        borderRadius: radius,
         background: pal.accent,
-        color: '#fff',
+        color: pal.onAccent,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: "'Archivo', sans-serif",
-        fontWeight: 700,
-        fontSize: fontSize ?? Math.round(size * 0.48),
+        fontFamily: FONTS.heading,
+        fontWeight: 800,
+        fontSize: fontSize ?? Math.round(size * 0.52),
+        lineHeight: 1,
         flexShrink: 0,
         ...style,
       }}
@@ -27,8 +29,9 @@ export function Avatar({ person, size = 27, radius, fontSize, style }) {
   )
 }
 
-// Two overlapping avatars used wherever an exercise / session is for "Both".
-export function PersonPair({ people, size = 21 }) {
+// Two adjoining identity blocks used wherever an exercise / session is for
+// "Both" — butted together as RED | STEEL rather than overlapped or blended.
+export function PersonPair({ people, size = 22 }) {
   return (
     <div style={{ display: 'flex' }}>
       {people.map((p, i) => (
@@ -36,12 +39,7 @@ export function PersonPair({ people, size = 21 }) {
           key={p.id}
           person={p}
           size={size}
-          radius={Math.round(size * 0.28)}
-          style={
-            i === 0
-              ? undefined
-              : { marginLeft: -Math.round(size * 0.3), border: '1.5px solid #fff' }
-          }
+          style={i === 0 ? undefined : { marginLeft: BORDER, borderRadius: RADII.sm }}
         />
       ))}
     </div>

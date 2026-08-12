@@ -1,9 +1,9 @@
 {
-  "name": "couples-recording-mode",
+  "name": "train-together",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Couples Recording Mode — a strength workout logger for two people on one phone",
+  "description": "Train Together — a strength workout logger for two people on one phone",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

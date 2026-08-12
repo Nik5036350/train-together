@@ -3,7 +3,8 @@ import { Sheet } from './Sheet.jsx'
 import { ValueInput } from './Stepper.jsx'
 import { Avatar } from './Avatar.jsx'
 import { Icon } from './Icon.jsx'
-import { personPalette, COLORS } from '../theme.js'
+import { PrimaryButton, GhostButton, DangerButton } from './Button.jsx'
+import { personPalette, COLORS, FONTS } from '../theme.js'
 
 // Self-contained "Edit set" bottom sheet, shared by the live logging card and
 // the past-workout detail screen. The caller resolves the set + people and
@@ -39,15 +40,24 @@ function EditSetForm({ set, exercise, person, otherPerson, onSave, onReassign, o
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 2px 14px' }}>
-        <Avatar person={person} size={26} radius={8} />
-        <span style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: 16 }}>{person?.name}</span>
-        <span style={{ fontSize: 13, color: COLORS.textMuted, fontWeight: 500 }}>
-          {exercise?.name} · Set {set.setIndex + 1}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 6px' }}>
+        <Avatar person={person} size={28} />
+        <span
+          className="display"
+          style={{ fontSize: 18, textTransform: 'uppercase', color: pal.text }}
+        >
+          {person?.name}
+        </span>
+        <span
+          className="num"
+          style={{ fontFamily: FONTS.heading, fontWeight: 700, fontSize: 15, marginLeft: 'auto' }}
+        >
+          SET {String(set.setIndex + 1).padStart(2, '0')}
         </span>
       </div>
+      <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 16 }}>{exercise?.name}</div>
 
-      <div style={{ display: 'flex', gap: 9 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
         {tracks.weight && (
           <ValueInput label={person?.unit || 'kg'} value={vals.weight} onChange={(v) => field('weight', v)} step={2.5} accent={pal.accent} accentBorder />
         )}
@@ -59,43 +69,25 @@ function EditSetForm({ set, exercise, person, otherPerson, onSave, onReassign, o
         )}
       </div>
 
-      <button
+      <PrimaryButton
         onClick={() => onSave({ weight: numOrNull(vals.weight), reps: numOrNull(vals.reps), duration: numOrNull(vals.duration) })}
-        style={primaryBtn}
+        style={{ marginTop: 16 }}
       >
         Save changes
-      </button>
+      </PrimaryButton>
 
       {otherPerson && (
-        <button
-          onClick={() => onReassign(otherPerson.id)}
-          style={{ width: '100%', height: 46, marginTop: 8, borderRadius: 12, background: '#fff', border: '1px solid rgba(15,17,21,.12)', fontWeight: 700, fontSize: 14, color: COLORS.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-        >
+        <GhostButton onClick={() => onReassign(otherPerson.id)} style={{ marginTop: 8 }}>
           <Icon name="swap" size={15} />
           Move to {otherPerson.name}
-        </button>
+        </GhostButton>
       )}
 
-      <button
-        onClick={onDelete}
-        style={{ width: '100%', height: 46, marginTop: 8, borderRadius: 12, background: '#fff', border: '1px solid rgba(214,51,108,.25)', color: '#D6336C', fontWeight: 700, fontSize: 14 }}
-      >
+      <DangerButton onClick={onDelete} style={{ marginTop: 8 }}>
         Delete set
-      </button>
+      </DangerButton>
     </>
   )
-}
-
-const primaryBtn = {
-  width: '100%',
-  height: 50,
-  marginTop: 12,
-  borderRadius: 13,
-  background: COLORS.primary,
-  color: '#fff',
-  fontFamily: "'Archivo', sans-serif",
-  fontWeight: 700,
-  fontSize: 16,
 }
 
 function numOrNull(v) {

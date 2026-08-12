@@ -1,26 +1,12 @@
 // Formatting helpers for displaying logged performance.
 
-// Render a single set as the compact "80×8" chip used across the design.
-export function setChip(set, exercise) {
-  const tracks = exercise?.tracks || {}
-  if (tracks.duration && !tracks.reps) {
-    return formatDuration(set.duration)
-  }
-  if (tracks.weight && tracks.reps) {
-    return `${trimNum(set.weight)}×${set.reps}`
-  }
-  if (tracks.reps) {
-    return `${set.reps}`
-  }
-  if (tracks.duration) {
-    return formatDuration(set.duration)
-  }
-  return `${trimNum(set.weight ?? 0)}`
-}
-
-// "Logged Alex · 80 kg × 8" style summary used in the snackbar.
+// "80 kg × 8" style summary, used by the snackbar and the set ledgers.
 export function setSummary(set, exercise, unit = 'kg') {
-  const tracks = exercise?.tracks || {}
+  // History keeps sets whose exercise has since been deleted from the library.
+  // With no `tracks` to consult we can't know what the exercise measured, so
+  // fall back to whatever the set itself recorded — otherwise those rows render
+  // blank and the logged numbers look lost.
+  const tracks = exercise?.tracks || { weight: true, reps: true, duration: true }
   const parts = []
   if (tracks.weight && set.weight != null) parts.push(`${trimNum(set.weight)} ${unit}`)
   if (tracks.reps && set.reps != null) parts.push(`× ${set.reps}`)
@@ -34,6 +20,15 @@ export function formatDuration(totalSeconds) {
   const m = Math.floor(s / 60)
   const rem = s % 60
   return `${m}:${String(rem).padStart(2, '0')}`
+}
+
+// Seconds → "00:42". Same value as formatDuration, but zero-padded to a fixed
+// width so the rest timer's digits never reflow as it counts down (guide §24).
+export function formatClock(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds || 0))
+  const m = Math.floor(s / 60)
+  const rem = s % 60
+  return `${String(m).padStart(2, '0')}:${String(rem).padStart(2, '0')}`
 }
 
 // Elapsed milliseconds → "1:12" hours:minutes for the session timer / summary.
