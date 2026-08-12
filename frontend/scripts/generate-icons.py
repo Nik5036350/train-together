@@ -2,30 +2,28 @@
 """Generate the app icon set and the iOS launch images from a single source PNG.
 
     python3 scripts/generate-icons.py            # regenerate everything
-    python3 scripts/generate-icons.py --check    # verify, write nothing
+    python3 scripts/generate-icons.py --check    # verify the source, write nothing
 
-The source (`assets/icon-source.png`) is a red badge drawn on a white field with
-its own rounded corners. iOS applies its own squircle mask to home screen icons,
-so shipping the artwork as-drawn produces a white ring nested inside that mask.
-Everything here exists to hand each platform a full-bleed, opaque square and let
-it do the rounding.
+The source (`assets/icon-source.png`) is a full-bleed 1024x1024 square: a kraft
+pictogram on a textured red field, with no drawn corners and no outer margin.
+That shape is deliberate — iOS applies its own squircle mask to home screen
+icons, so artwork carrying its own rounded corners shows a ring nested inside
+that mask. This script validates the source, then hands each platform the square
+it expects and lets it do the rounding.
 
 Needs Pillow (`pip install pillow`); it is a dev-time tool, not an app dependency.
 """
 
 import sys
-from collections import deque
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "assets" / "icon-source.png"
 PUBLIC = ROOT / "public"
 SPLASH_DIR = PUBLIC / "splash"
 
-RED = (0xBE, 0x20, 0x1C)  # badge red, sampled from the source
-WHITE = (0xFF, 0xFF, 0xFF)
 BACKGROUND = (0xF1, 0xE6, 0xD0)  # Paper — matches manifest background_color
 
 # Distinct portrait viewports across the supported iPhone range. Several models
@@ -46,62 +44,54 @@ IPHONE_VIEWPORTS = [
 ]
 
 SPLASH_LOGO_CSS_PX = 200
+SPLASH_JPEG_QUALITY = 88
 IOS_CORNER_RADIUS = 0.222  # fraction of width; approximates the iOS squircle
-MASKABLE_SAFE_SCALE = 0.8  # artwork occupies the inner 80% safe zone
+MASKABLE_PAD = 0.083  # widen the field by this much per side, see maskable()
+
+# The source's luminance histogram is cleanly bimodal — red field 48-95, kraft
+# pictogram 144-223 — so this threshold sits in an empty valley. The median
+# filter first removes the bright speckles the paper texture sprays across the
+# red, which would otherwise read as pictogram.
+PICTOGRAM_LUMA = 120
+DESPECKLE = 5
 
 
-def build_base(path: Path, inset: int = 8) -> Image.Image:
-    """Turn the source badge into a full-bleed, opaque, noise-free square."""
-    img = Image.open(path).convert("RGB")
+def pictogram_mask(img: Image.Image) -> Image.Image:
+    """Binary mask of the kraft pictogram, with the paper grain filtered out."""
+    grey = img.convert("L").filter(ImageFilter.MedianFilter(DESPECKLE))
+    return grey.point(lambda v: 255 if v > PICTOGRAM_LUMA else 0)
+
+
+def load_source(path: Path) -> Image.Image:
+    """Load the source and assert the properties every output depends on."""
+    img = Image.open(path)
+
+    if img.size[0] != img.size[1]:
+        raise ValueError(f"source must be square, got {img.size[0]}x{img.size[1]}")
+    if "A" in img.getbands():
+        # iOS composites a transparent apple-touch-icon against black, so a
+        # stray alpha channel turns the corners into black notches.
+        raise ValueError("source must have no alpha channel")
+
+    img = img.convert("RGB")
     width, height = img.size
-    px = img.load()
-    seed = px[width // 2, height // 2]
 
-    def is_badge(pixel):
-        return sum(abs(a - b) for a, b in zip(pixel, seed)) < 90
+    # Full-bleed check: the artwork must run to all four edges. A source with a
+    # white margin or its own rounded corners fails here rather than shipping a
+    # light ring inside the iOS mask.
+    mask = pictogram_mask(img).load()
+    edge = sum(
+        1
+        for i in range(width)
+        for x, y in ((i, 0), (i, height - 1), (0, i), (width - 1, i))
+        if mask[x, y]
+    )
+    if edge:
+        raise ValueError(
+            f"{edge} non-field pixels on the outer edge; the source is not full-bleed"
+        )
 
-    # 1. Crop to the badge, biting `inset` px inside it so the white margin and
-    #    the antialiased boundary row are both discarded.
-    cols = [x for x in range(width) if any(is_badge(px[x, y]) for y in range(0, height, 2))]
-    rows = [y for y in range(height) if any(is_badge(px[x, y]) for x in range(0, width, 2))]
-    badge = img.crop((cols[0] + inset, rows[0] + inset, cols[-1] - inset + 1, rows[-1] - inset + 1))
-
-    # The source badge is a few px off square; centre-crop to the shorter side.
-    side = min(badge.size)
-    left, top = (badge.width - side) // 2, (badge.height - side) // 2
-    badge = badge.crop((left, top, left + side, top + side))
-
-    # 2. Flood-fill the four exterior corner regions with the badge colour. They
-    #    are disconnected from the white pictogram, which the badge encloses.
-    bw, bh = badge.size
-    bp = badge.load()
-    for corner in ((0, 0), (bw - 1, 0), (0, bh - 1), (bw - 1, bh - 1)):
-        if is_badge(bp[corner]):
-            continue
-        queue = deque([corner])
-        bp[corner] = seed
-        while queue:
-            x, y = queue.popleft()
-            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < bw and 0 <= ny < bh and not is_badge(bp[nx, ny]):
-                    bp[nx, ny] = seed
-                    queue.append((nx, ny))
-
-    # 3. The source carries JPEG-style mottling across what should be flat
-    #    colour. Remap every pixel onto the exact red-to-white axis, using the
-    #    green channel as the blend factor: antialiasing survives, noise doesn't.
-    #    Skipping this triples the encoded size of the larger icons.
-    green = badge.split()[1]
-    low = seed[1]
-    blend = green.point(lambda v: 0 if v <= low else min(255, int((v - low) * 255 / (255 - low))))
-    out = Image.new("RGB", badge.size, RED)
-    out.paste(Image.new("RGB", badge.size, WHITE), (0, 0), blend)
-
-    # 4. Force the outer frame to solid red so no stray light pixel survives on
-    #    the edge, where it would read as a white fringe against a dark wallpaper.
-    ImageDraw.Draw(out).rectangle((0, 0, bw - 1, bh - 1), outline=RED, width=2)
-    return out
+    return img
 
 
 def save(img: Image.Image, path: Path, colors: int = 64) -> int:
@@ -111,28 +101,61 @@ def save(img: Image.Image, path: Path, colors: int = 64) -> int:
     return path.stat().st_size
 
 
-def rounded(img: Image.Image, radius_frac: float = IOS_CORNER_RADIUS) -> Image.Image:
-    """Pre-round the corners — iOS does not mask launch images."""
+def rounded(img: Image.Image) -> Image.Image:
+    """Corner mask for the launch images — iOS does not mask those itself."""
     size = img.size[0]
     supersampled = size * 4
     mask = Image.new("L", (supersampled, supersampled), 0)
     ImageDraw.Draw(mask).rounded_rectangle(
         (0, 0, supersampled - 1, supersampled - 1),
-        radius=int(supersampled * radius_frac),
+        radius=int(supersampled * IOS_CORNER_RADIUS),
         fill=255,
     )
-    mask = mask.resize((size, size), Image.LANCZOS)
-    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    out.paste(img.convert("RGBA"), (0, 0), mask)
-    return out
+    return mask.resize((size, size), Image.LANCZOS)
 
 
-def maskable(base: Image.Image, size: int) -> Image.Image:
-    """Artwork inside the inner 80%, on a red field Android is free to crop."""
-    canvas = Image.new("RGB", (size, size), RED)
-    inner = int(size * MASKABLE_SAFE_SCALE)
-    canvas.paste(base.resize((inner, inner), Image.LANCZOS), ((size - inner) // 2,) * 2)
-    return canvas
+def maskable(src: Image.Image, size: int, pad_frac: float = MASKABLE_PAD) -> Image.Image:
+    """Widen the red field by mirroring it outward.
+
+    Android crops a maskable icon to at worst a circle of 40% radius, and the
+    pictogram reaches 43.1% of width in the source. Padding pulls it back to
+    37%. Reflecting the source's own border is what keeps this invisible: the
+    field is textured and unevenly lit, so padding with a flat colour would
+    leave a ring and a hard seam. The tightest margin around the pictogram is
+    13.7% of width, so the mirrored band is drawn purely from empty field.
+    """
+    width = src.size[0]
+    pad = int(width * pad_frac)
+    padded = Image.new("RGB", (width + 2 * pad, width + 2 * pad))
+
+    padded.paste(src, (pad, pad))
+    padded.paste(src.crop((0, 0, pad, width)).transpose(Image.FLIP_LEFT_RIGHT), (0, pad))
+    padded.paste(
+        src.crop((width - pad, 0, width, width)).transpose(Image.FLIP_LEFT_RIGHT),
+        (width + pad, pad),
+    )
+    full = padded.size[0]
+    padded.paste(padded.crop((0, pad, full, 2 * pad)).transpose(Image.FLIP_TOP_BOTTOM), (0, 0))
+    padded.paste(
+        padded.crop((0, width, full, width + pad)).transpose(Image.FLIP_TOP_BOTTOM),
+        (0, width + pad),
+    )
+
+    return padded.resize((size, size), Image.LANCZOS)
+
+
+def safe_zone_radius(img: Image.Image) -> float:
+    """Furthest pictogram pixel from the centre, as a fraction of width."""
+    mask = pictogram_mask(img)
+    width, height = mask.size
+    px = mask.load()
+    cx, cy = (width - 1) / 2, (height - 1) / 2
+    worst = 0.0
+    for y in range(height):
+        for x in range(width):
+            if px[x, y]:
+                worst = max(worst, ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5)
+    return worst / width
 
 
 def main() -> int:
@@ -141,21 +164,19 @@ def main() -> int:
         print(f"error: source image not found at {SOURCE}", file=sys.stderr)
         return 1
 
-    base = build_base(SOURCE)
-
-    # The edge is what makes or breaks the iPhone home screen icon, so assert it.
-    bp = base.load()
-    w, h = base.size
-    stray = sum(
-        1
-        for i in range(w)
-        for (x, y) in ((i, 0), (i, h - 1), (0, i), (w - 1, i))
-        if sum(abs(a - b) for a, b in zip(bp[x, y], RED)) > 10
-    )
-    if stray:
-        print(f"error: {stray} non-red pixels on the outer edge; icon would show a fringe", file=sys.stderr)
+    try:
+        base = load_source(SOURCE)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
         return 1
-    print(f"base: {base.size[0]}x{base.size[1]}, edge clean, {len(base.getcolors(maxcolors=1 << 20))} colours")
+
+    bare = safe_zone_radius(base)
+    padded = safe_zone_radius(maskable(base, base.size[0]))
+    print(f"source:   {base.size[0]}x{base.size[1]}, full-bleed, no alpha")
+    print(f"maskable: pictogram at {bare:.1%} of width, {padded:.1%} after padding (limit 40.0%)")
+    if padded > 0.40:
+        print("error: padded artwork still exceeds the Android safe zone", file=sys.stderr)
+        return 1
 
     if check_only:
         print("--check: nothing written")
@@ -177,16 +198,20 @@ def main() -> int:
     total += (PUBLIC / "favicon.ico").stat().st_size
     print(f"icons:    8 files, {total / 1024:.1f} KB")
 
-    # Launch images are a flat background plus the logo, so a 4-colour palette is
-    # indistinguishable from 16 here and encodes an order of magnitude smaller.
+    # The launch images are fully opaque — the rounded logo is composited onto
+    # the background before writing — so JPEG applies. The artwork's paper grain
+    # is incompressible noise: a PNG faithful enough to avoid banding runs about
+    # twice the size of q88 4:4:4.
     splash_total = 0
     for css_w, css_h, dpr in IPHONE_VIEWPORTS:
         px_w, px_h = css_w * dpr, css_h * dpr
         canvas = Image.new("RGB", (px_w, px_h), BACKGROUND)
         logo_px = SPLASH_LOGO_CSS_PX * dpr
-        logo = rounded(base.resize((logo_px, logo_px), Image.LANCZOS))
-        canvas.paste(logo, ((px_w - logo_px) // 2, (px_h - logo_px) // 2), logo)
-        splash_total += save(canvas, SPLASH_DIR / f"apple-splash-{px_w}x{px_h}.png", colors=4)
+        logo = base.resize((logo_px, logo_px), Image.LANCZOS)
+        canvas.paste(logo, ((px_w - logo_px) // 2, (px_h - logo_px) // 2), rounded(logo))
+        path = SPLASH_DIR / f"apple-splash-{px_w}x{px_h}.jpg"
+        canvas.save(path, "JPEG", quality=SPLASH_JPEG_QUALITY, optimize=True, subsampling=0)
+        splash_total += path.stat().st_size
     print(f"splashes: {len(IPHONE_VIEWPORTS)} files, {splash_total / 1024:.1f} KB")
     print(f"total:    {(total + splash_total) / 1024:.1f} KB")
     return 0

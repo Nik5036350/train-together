@@ -57,11 +57,26 @@ python3 scripts/generate-icons.py           # regenerate (needs Pillow)
 python3 scripts/generate-icons.py --check    # validate the source, write nothing
 ```
 
-The script crops the source badge to a full-bleed, opaque square, because iOS
-applies its own squircle mask to home-screen icons — shipping the artwork with its
-drawn corners intact produces a white ring inside that mask. It also emits the
-80%-safe-zone maskable variants for Android and one launch image per iPhone
-viewport. To swap the icon, replace `assets/icon-source.png` and re-run.
+To swap the icon, replace `assets/icon-source.png` and re-run. The source must be a
+square, opaque, **full-bleed** PNG — artwork running edge to edge, with no margin
+and no rounded corners of its own. `--check` enforces exactly that, because iOS
+applies its own squircle mask to home-screen icons and pre-rounded artwork shows a
+ring nested inside it.
+
+From there the script emits:
+
+- the home-screen and manifest icons, plus favicons, as opaque paletted PNGs;
+- the Android `maskable` variants. Android crops these to at worst a circle of 40%
+  radius, and the pictogram reaches 43.1%, so the field is widened by mirroring its
+  own border outward — padding with a flat colour would leave a visible ring, since
+  the artwork is textured and unevenly lit;
+- one launch image per iPhone viewport, as JPEG. iOS does *not* mask these, so their
+  corners are pre-rounded; they are fully opaque, and the artwork's paper grain is
+  incompressible noise that costs about twice as much as PNG.
+
+Launch images are excluded from the service worker precache (`vite.config.js`):
+every device matches exactly one by media query, so precaching all 11 would cost
+each install over a megabyte for nothing.
 
 Data follows the PRD entity model: shared `ExerciseDefinition`s, per-person
 `PersonExerciseProfile`s, a `WorkoutTemplate` with assignments, and a live `session`
