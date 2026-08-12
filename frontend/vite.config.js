@@ -17,7 +17,16 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'],
+      includeAssets: [
+        'favicon.ico',
+        'favicon-16.png',
+        'favicon-32.png',
+        'apple-touch-icon.png',
+        'icon-192.png',
+        'icon-512.png',
+        'icon-192-maskable.png',
+        'icon-512-maskable.png',
+      ],
       manifest: {
         name: 'Couples Recording Mode',
         short_name: 'Couples Recording',
@@ -29,13 +38,17 @@ export default defineConfig({
         start_url: '.',
         scope: '.',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
           { src: 'icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Every device uses exactly one launch image, matched by media query, so
+        // precaching all of them would cost each install ~60 KB for nothing.
+        globIgnores: ['**/splash/**'],
         runtimeCaching: [
           {
             // Google Fonts stylesheet + font files — keep the app's typography offline.

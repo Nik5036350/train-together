@@ -46,6 +46,22 @@ src/
   screens/            the 8 screens
 ```
 
+## App icon
+
+Every icon, favicon and iOS launch image in `public/` is generated from the single
+source at `assets/icon-source.png`. Don't hand-edit them:
+
+```bash
+python3 scripts/generate-icons.py           # regenerate (needs Pillow)
+python3 scripts/generate-icons.py --check    # validate the source, write nothing
+```
+
+The script crops the source badge to a full-bleed, opaque square, because iOS
+applies its own squircle mask to home-screen icons — shipping the artwork with its
+drawn corners intact produces a white ring inside that mask. It also emits the
+80%-safe-zone maskable variants for Android and one launch image per iPhone
+viewport. To swap the icon, replace `assets/icon-source.png` and re-run.
+
 Data follows the PRD entity model: shared `ExerciseDefinition`s, per-person
 `PersonExerciseProfile`s, a `WorkoutTemplate` with assignments, and a live `session`
 where **every set record belongs to exactly one person** (invariant DI-01).
