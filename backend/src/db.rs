@@ -20,7 +20,7 @@ pub async fn init_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
                 .create_table_from_entity($ent)
                 .if_not_exists()
                 .to_owned();
-            db.execute(db.get_database_backend().build(&stmt)).await?;
+            db.execute(&stmt).await?;
         }};
     }
     create!(person::Entity);
