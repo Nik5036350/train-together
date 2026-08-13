@@ -12,6 +12,11 @@ axum = "0.7"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 tower-http = { version = "0.6", features = ["cors"] }
 sea-orm = { version = "2.0", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+# Migrations run at boot via refinery (Flyway-style versioned SQL). Its only
+# SQLite driver is rusqlite, which shares libsqlite3-sys with sqlx-sqlite — one
+# bundled SQLite, statically linked, so the scratch image stays self-contained.
+refinery = { version = "0.9", default-features = false, features = ["rusqlite-bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rust-embed = "8"

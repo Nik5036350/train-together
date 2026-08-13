@@ -7,6 +7,14 @@ use std::collections::BTreeMap;
 // nullable fields serialized as null). They double as the import (PUT /state)
 // body, so they derive Deserialize too.
 
+// Version of the JSON aggregate — the *backup format*, not the database schema.
+// The schema version is refinery's, lives in refinery_schema_history, and is
+// never serialized; the two evolve independently (adding a column does not
+// change this shape). This is also the oldest backup `import_state` accepts:
+// every `#[serde(default)]` below exists to tolerate a shape at or above it, so
+// the floor is what makes those attributes finite rather than forever.
+pub const BACKUP_FORMAT_VERSION: i32 = 3;
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StateResponse {
@@ -289,7 +297,10 @@ pub async fn build_state(db: &DatabaseConnection) -> Result<StateResponse, DbErr
     };
 
     Ok(StateResponse {
-        version: settings.as_ref().map(|s| s.version).unwrap_or(3),
+        version: settings
+            .as_ref()
+            .map(|s| s.version)
+            .unwrap_or(BACKUP_FORMAT_VERSION),
         onboarded: settings.as_ref().map(|s| s.onboarded).unwrap_or(true),
         people,
         settings: settings
