@@ -1,6 +1,6 @@
-// JSON backup/restore for the whole store. All workout data lives in
-// localStorage, which iOS can evict from an installed PWA after ~7 days of
-// non-use — so let people pull a file out and put it back.
+// JSON backup/restore for the whole store. All workout data lives in the
+// backend database (a single SQLite file), which has no automated backup — so
+// let people pull a file out and put it back.
 
 // Serialize the store and trigger a download. The date is stamped here (in the
 // click handler), not at module load.

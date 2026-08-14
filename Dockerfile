@@ -21,6 +21,8 @@ RUN apk add --no-cache build-base
 WORKDIR /app
 COPY backend/Cargo.toml backend/Cargo.lock ./
 COPY backend/src ./src
+# refinery's embed_migrations! reads this directory at compile time.
+COPY backend/migrations ./migrations
 # Embed the built frontend into the binary (rust-embed reads ./static at compile time).
 COPY --from=web /web/dist/ ./static/
 RUN cargo build --release
