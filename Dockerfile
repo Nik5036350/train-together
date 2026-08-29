@@ -9,8 +9,6 @@ WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
-# Serve at root (not the GitHub Pages subpath) since the backend hosts it at /.
-ENV VITE_BASE=/
 RUN npm run build
 
 # ---- Stage 2: build the static Rust binary ----

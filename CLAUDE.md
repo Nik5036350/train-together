@@ -49,11 +49,11 @@ Backend tests are integration-style: they build the real router against in-memor
 
 ## Static serving and deployment
 
-- The Dockerfile builds the frontend, copies `dist/` into `backend/static/`, and `rust-embed` bakes it into a static musl binary (`FROM scratch` final image). The axum router's fallback serves these embedded assets.
-- Vite `base` defaults to `/train-together/` for GitHub Pages; the Docker build overrides with `VITE_BASE=/`. The app uses `HashRouter`, so no server-side route handling is needed.
-- The GitHub Pages workflow deploys only the frontend, which is non-functional without a separately hosted backend (`VITE_API_URL`). The Docker image is the real single-artifact deployment.
+- The Dockerfile builds the frontend, copies `dist/` into the Rust build's `static/` directory, and `rust-embed` bakes it into a static musl binary (`FROM scratch` final image). The axum router's fallback serves these embedded assets.
+- Vite builds for `/` by default; `VITE_BASE` is available for an intentional subpath deployment. The app uses `HashRouter`, so the server does not need route-specific fallbacks.
+- `.github/workflows/docker.yml` publishes the image to GHCR. A successful push to `main` then updates `infra/gym.yaml` in `Nik5036350/home-infra` for the GitOps rollout.
 
 ## Gotchas
 
-- The backend was rewritten from Kotlin/Spring Boot to Rust; a few frontend comments (e.g. in `api.js`, `vite.config.js`) still say "Spring Boot" — they mean the Rust backend on port 8080. `backend/src/test/resources/application.yml` is a leftover from that era.
+- `backend/src/test/resources/application.yml` is a leftover from the former Kotlin/Spring Boot backend.
 - CI (`.github/workflows/backend.yml`) runs `cargo fmt --check` and `clippy -D warnings` — run both before committing backend changes.

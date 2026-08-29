@@ -58,7 +58,5 @@ docker compose up --build
 ## Notes
 
 - All workout data now lives in the backend database — there is no offline mode.
-- The GitHub Pages workflow deploys **only the frontend** (static hosting), which
-  requires a separately hosted backend to function. See `frontend/DEPLOY.md`.
-  The Docker image above is the single-artifact alternative — one container
-  serving both the UI and the API.
+- Pushes to `main` publish the Docker image and update the GitOps deployment via
+  `.github/workflows/docker.yml`.

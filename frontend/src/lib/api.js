@@ -1,4 +1,4 @@
-// REST client for the Spring Boot backend. Every mutating call returns the full
+// REST client for the Rust backend. Every mutating call returns the full
 // refreshed aggregate state (same JSON shape the old reducer produced), so the
 // store can replace its cache wholesale.
 

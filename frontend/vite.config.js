@@ -4,11 +4,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Served under a subpath on GitHub Pages, but at root when the Spring Boot
-  // backend serves the built assets (Docker). Override with VITE_BASE=/.
-  base: process.env.VITE_BASE || '/train-together/',
+  // The Rust backend serves the production app at root. Keep an override for
+  // deployments that deliberately mount the app below another path.
+  base: process.env.VITE_BASE || '/',
   server: {
-    // Proxy API calls to the Spring Boot backend during development.
+    // Proxy API calls to the Rust backend during development.
     proxy: {
       '/api': 'http://localhost:8080',
     },
