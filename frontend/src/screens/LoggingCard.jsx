@@ -64,6 +64,17 @@ export function LoggingCard() {
   const setField = (personId, field, value) =>
     setInputs((s) => ({ ...s, [personId]: { ...getInputs(personId), [field]: value } }))
 
+  const fillFromSet = (personId, set) =>
+    setInputs((s) => ({
+      ...s,
+      [personId]: {
+        ...(s[personId] || getInputs(personId)),
+        weight: set.weight ?? '',
+        reps: set.reps ?? '',
+        duration: set.duration ?? '',
+      },
+    }))
+
   const log = (personId, source) => {
     const vals = getInputs(personId)
     dispatch({
@@ -206,6 +217,7 @@ export function LoggingCard() {
               onLog={() => log(person.id)}
               onRepeat={() => repeat(person.id)}
               onEditSet={setEditingSetId}
+              onFillSet={(set) => fillFromSet(person.id, set)}
               onActivate={() => dispatch({ type: 'SET_ACTIVE_ROW', payload: { sessionExerciseId: se.id, personId: person.id } })}
             />
           )
@@ -412,7 +424,7 @@ export function LoggingCard() {
   )
 }
 
-function ActiveRow({ state, session, se, variant, person, side, isActive, isTurns, isSingle, otherName, now, vals, onField, onLog, onRepeat, onEditSet, onActivate }) {
+function ActiveRow({ state, session, se, variant, person, side, isActive, isTurns, isSingle, otherName, now, vals, onField, onLog, onRepeat, onEditSet, onFillSet, onActivate }) {
   const pal = personPalette(person)
   const exId = effectiveExerciseId(se, person.id)
   const exercise = state.exercises[exId]
@@ -515,7 +527,9 @@ function ActiveRow({ state, session, se, variant, person, side, isActive, isTurn
           <SectionLabel
             action={
               lt ? (
-                <span className="meta" style={{ color: COLORS.textSecondary }}>{lt.sets.length} sets</span>
+                <span className="meta" style={{ color: COLORS.textSecondary }}>
+                  {lt.sets.length} {lt.sets.length === 1 ? 'set' : 'sets'} · tap to fill
+                </span>
               ) : null
             }
           >
@@ -524,7 +538,14 @@ function ActiveRow({ state, session, se, variant, person, side, isActive, isTurn
             {lt ? (lt.label === 'Last' ? 'Last time' : `Last time · ${lt.label}`) : 'No previous sets'}
           </SectionLabel>
           {lt && (
-            <SetLedger sets={lt.sets} exercise={exercise} unit={person.unit} palette={pal} muted />
+            <SetLedger
+              sets={lt.sets}
+              exercise={exercise}
+              unit={person.unit}
+              palette={pal}
+              muted
+              onSelect={onFillSet}
+            />
           )}
         </div>
 

@@ -13,9 +13,9 @@ import { Icon } from './Icon.jsx'
 // card the sets are reference material, not the main event. Drops to one column
 // when the values are too wide to pair up.
 //
-// `onEdit` keeps the existing tap-to-edit behavior; without it rows are static
-// (used for the read-only "last time" block).
-export function SetLedger({ sets, exercise, unit, palette, onEdit, muted = false }) {
+// `onEdit` keeps the existing tap-to-edit behavior. `onSelect` makes reference
+// rows reusable without giving them edit semantics.
+export function SetLedger({ sets, exercise, unit, palette, onEdit, onSelect, muted = false }) {
   const rendered = sets.map((set) => ({ set, text: setSummary(set, exercise, unit) || '—' }))
   // Duration-style values ("1:30 · 2:00") and heavy three-digit loads are the
   // long cases; pairing those would clip, so give them the full width.
@@ -39,6 +39,7 @@ export function SetLedger({ sets, exercise, unit, palette, onEdit, muted = false
           palette={palette}
           muted={muted}
           onEdit={onEdit}
+          onSelect={onSelect}
           // Only the first row of each column skips its divider.
           firstInColumn={i < columns}
         />
@@ -47,27 +48,36 @@ export function SetLedger({ sets, exercise, unit, palette, onEdit, muted = false
   )
 }
 
-function SetRow({ set, index, text, palette, muted, onEdit, firstInColumn }) {
-  const Tag = onEdit ? 'button' : 'div'
+function SetRow({ set, index, text, palette, muted, onEdit, onSelect, firstInColumn }) {
+  const interactive = !!(onEdit || onSelect)
+  const isFillOption = !!onSelect && !onEdit
+  const Tag = interactive ? 'button' : 'div'
   const accent = muted ? COLORS.textSecondary : palette?.accent || COLORS.text
+  const actionLabel = onEdit ? 'Edit' : 'Fill current attempt from'
 
   return (
     <Tag
       onClick={
-        onEdit
+        interactive
           ? (e) => {
-              e.stopPropagation()
-              onEdit(set.id)
+              if (onEdit) {
+                e.stopPropagation()
+                onEdit(set.id)
+              } else {
+                onSelect(set)
+              }
             }
           : undefined
       }
-      title={onEdit ? 'Edit this set' : undefined}
+      aria-label={interactive ? `${actionLabel} set ${index + 1}: ${text}` : undefined}
+      title={onEdit ? 'Edit this set' : onSelect ? 'Fill current attempt with this set' : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 7,
         width: '100%',
-        padding: '3px 0',
+        minHeight: isFillOption ? 44 : undefined,
+        padding: isFillOption ? '8px 4px' : '3px 0',
         textAlign: 'left',
         borderTop: firstInColumn ? 'none' : `1px solid ${COLORS.ruleSoft}`,
         color: muted ? COLORS.textSecondary : COLORS.text,
@@ -75,7 +85,7 @@ function SetRow({ set, index, text, palette, muted, onEdit, firstInColumn }) {
     >
       <span
         className="num display"
-        style={{ fontSize: 13, lineHeight: 1.15, color: accent, minWidth: 17 }}
+        style={{ fontSize: isFillOption ? 14 : 13, lineHeight: 1.15, color: accent, minWidth: isFillOption ? 19 : 17 }}
       >
         {String(index + 1).padStart(2, '0')}
       </span>
@@ -99,7 +109,7 @@ function SetRow({ set, index, text, palette, muted, onEdit, firstInColumn }) {
         style={{
           fontFamily: FONTS.heading,
           fontWeight: 700,
-          fontSize: 13,
+          fontSize: isFillOption ? 14 : 13,
           lineHeight: 1.15,
           textTransform: 'uppercase',
           letterSpacing: '0.01em',

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../store/AppContext.jsx'
 import { personById } from '../store/reducer.js'
@@ -9,7 +9,6 @@ import { personPalette, COLORS, FONTS, RADII, BORDER } from '../theme.js'
 import { Avatar, PersonPair } from '../components/Avatar.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { Sheet } from '../components/Sheet.jsx'
-import { Segmented } from '../components/Segmented.jsx'
 import { SectionLabel } from '../components/SectionLabel.jsx'
 import { IdentityBand } from '../components/IdentityBand.jsx'
 import { TimerRing } from '../components/TimerRing.jsx'
@@ -28,10 +27,20 @@ export function LiveOverview() {
   const nav = useNavigate()
   const session = state.session
   const now = useNow(true)
-  const [addOpen, setAddOpen] = useState(false)
-  const [addAssign, setAddAssign] = useState('both')
+  const [addingExerciseId, setAddingExerciseId] = useState(null)
   const [finishOpen, setFinishOpen] = useState(false)
   const [finishing, setFinishing] = useState(false)
+
+  // Adding an exercise returns a refreshed aggregate through AppContext. Wait
+  // for that state before navigating so the logger always receives the new
+  // session-exercise id rather than the library exercise id.
+  useEffect(() => {
+    if (!addingExerciseId) return
+    const added = session?.exercises.find((se) => se.exerciseId === addingExerciseId)
+    if (!added) return
+    setAddingExerciseId(null)
+    nav(`/session/exercise/${added.id}`)
+  }, [addingExerciseId, nav, session])
 
   if (!session) {
     return (
@@ -46,7 +55,7 @@ export function LiveOverview() {
   // is one of 'pending' | 'logged' | 'skipped' — the vocabulary the backend
   // writes (services/session.rs). It is not 'done'; testing for that made every
   // exercise look outstanding forever.
-  const activeIdx = session.exercises.findIndex((se) =>
+  const activeExercise = session.exercises.find((se) =>
     se.appliesTo.some((pid) => {
       const st = se.perPerson[pid]?.status
       return st !== 'skipped' && st !== 'logged'
@@ -72,9 +81,21 @@ export function LiveOverview() {
     }),
   )
 
-  const libraryNotInSession = Object.values(state.exercises).filter(
-    (ex) => !session.exercises.some((se) => se.exerciseId === ex.id),
-  )
+  const standardExercises = session.exercises.filter((se) => !se.addedDuringSession)
+  const addedExercises = session.exercises.filter((se) => se.addedDuringSession)
+  const libraryNotInSession = Object.values(state.exercises)
+    .filter((ex) => !session.exercises.some((se) => se.exerciseId === ex.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  const addAndOpen = async (exerciseId) => {
+    if (addingExerciseId) return
+    setAddingExerciseId(exerciseId)
+    const ok = await dispatch({
+      type: 'ADD_SESSION_EXERCISE',
+      payload: { exerciseId, assignment: 'both' },
+    })
+    if (!ok) setAddingExerciseId(null)
+  }
 
   return (
     <div style={{ padding: '52px 0 30px', display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -125,92 +146,118 @@ export function LiveOverview() {
       </div>
 
       <div className="scroll-area" style={{ flex: 1, padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {session.exercises.map((se, idx) => (
-          <ExerciseRow
-            key={se.id}
-            state={state}
-            session={session}
-            se={se}
-            index={idx}
-            active={idx === activeIdx}
-            now={now}
-            onOpen={() => nav(`/session/exercise/${se.id}`)}
-          />
-        ))}
-
-        <button
-          onClick={() => setAddOpen(true)}
-          style={{
-            border: `${BORDER}px dashed ${COLORS.rule}`,
-            borderRadius: RADII.sm,
-            padding: 14,
-            fontFamily: FONTS.heading,
-            fontSize: 14,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: COLORS.text,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-        >
-          <Icon name="plus" size={13} />
-          Add exercise
-        </button>
-      </div>
-
-      {/* Add exercise sheet */}
-      <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Add exercise">
-        <SectionLabel style={{ marginBottom: 12 }}>For whom</SectionLabel>
-        <div style={{ marginBottom: 20 }}>
-          <Segmented
-            variant="cards"
-            options={[
-              { value: 'owner', label: people[0]?.name || 'Owner' },
-              { value: 'partner', label: people.find((p) => !p.isOwner)?.name || 'Partner' },
-              { value: 'both', label: 'Both' },
-            ].filter((o) => o.value === 'both' ? people.length > 1 : true)}
-            value={addAssign}
-            onChange={setAddAssign}
-          />
+        <div>
+          <SectionLabel
+            action={<span className="meta" style={{ color: COLORS.textSecondary }}>{standardExercises.length} exercises</span>}
+            style={{ marginBottom: 8 }}
+          >
+            Standard plan
+          </SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {standardExercises.map((se, idx) => (
+              <ExerciseRow
+                key={se.id}
+                state={state}
+                session={session}
+                se={se}
+                index={idx}
+                active={se.id === activeExercise?.id}
+                now={now}
+                onOpen={() => nav(`/session/exercise/${se.id}`)}
+              />
+            ))}
+          </div>
         </div>
-        <SectionLabel style={{ marginBottom: 12 }}>Exercise</SectionLabel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {libraryNotInSession.map((ex) => (
-            <button
-              key={ex.id}
-              onClick={() => {
-                dispatch({ type: 'ADD_SESSION_EXERCISE', payload: { exerciseId: ex.id, assignment: addAssign } })
-                setAddOpen(false)
-              }}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                background: COLORS.card,
-                borderRadius: RADII.sm,
-                padding: '12px 14px',
-                border: `${BORDER}px solid ${COLORS.ruleSoft}`,
-              }}
+
+        {addedExercises.length > 0 && (
+          <div style={separatedSection}>
+            <SectionLabel
+              action={<span className="meta" style={{ color: COLORS.textSecondary }}>Not in standard plan</span>}
+              style={{ marginBottom: 8 }}
             >
-              <div style={{ textAlign: 'left' }}>
-                <div className="display" style={{ fontSize: 16, textTransform: 'uppercase' }}>{ex.name}</div>
-                <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>{ex.equipment || ex.category}</div>
-              </div>
-              <Icon name="plus" size={14} />
-            </button>
-          ))}
+              Added today
+            </SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {addedExercises.map((se) => (
+                <ExerciseRow
+                  key={se.id}
+                  state={state}
+                  session={session}
+                  se={se}
+                  active={se.id === activeExercise?.id}
+                  extra
+                  now={now}
+                  onOpen={() => nav(`/session/exercise/${se.id}`)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={separatedSection}>
+          <SectionLabel
+            action={<span className="meta" style={{ color: COLORS.textSecondary }}>{libraryNotInSession.length} available</span>}
+            style={{ marginBottom: 6 }}
+          >
+            Optional exercises
+          </SectionLabel>
+          <div style={{ fontSize: 12, lineHeight: 1.4, color: COLORS.textSecondary, marginBottom: 10 }}>
+            Not part of the standard plan · tap to add for {people.length > 1 ? 'both' : people[0]?.name}
+          </div>
+          {libraryNotInSession.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {libraryNotInSession.map((ex) => {
+                const isAdding = addingExerciseId === ex.id
+                const addBusy = !!addingExerciseId
+                return (
+                  <button
+                    key={ex.id}
+                    onClick={() => addAndOpen(ex.id)}
+                    disabled={addBusy}
+                    aria-label={`Add ${ex.name} for ${people.length > 1 ? 'both' : people[0]?.name}`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 12,
+                      width: '100%',
+                      minHeight: 52,
+                      background: COLORS.card,
+                      borderRadius: RADII.sm,
+                      padding: '10px 12px',
+                      border: `1px dashed ${COLORS.rule}`,
+                      opacity: addBusy && !isAdding ? 0.5 : 1,
+                      cursor: addBusy ? 'default' : 'pointer',
+                    }}
+                  >
+                    <div style={{ minWidth: 0, textAlign: 'left' }}>
+                      <div className="display" style={{ fontSize: 15, textTransform: 'uppercase' }}>{ex.name}</div>
+                      <div style={{ fontSize: 11, color: COLORS.textSecondary, marginTop: 2 }}>{ex.equipment || ex.category}</div>
+                    </div>
+                    <span
+                      className="meta"
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, color: COLORS.textSecondary, flexShrink: 0 }}
+                    >
+                      {isAdding ? 'Adding…' : <><span>{people.length > 1 ? 'Both' : people[0]?.name}</span><Icon name="plus" size={13} /></>}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: COLORS.textSecondary, padding: '10px 0' }}>
+              Every library exercise is already in today&apos;s session.
+            </div>
+          )}
         </div>
-      </Sheet>
+      </div>
 
       {/* Finish confirmation (PRD FR-220 — warns about incomplete items) */}
       <Sheet open={finishOpen} onClose={() => setFinishOpen(false)} title="Finish workout?">
         {incomplete.length > 0 ? (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 12 }}>
-              Some planned exercises aren't done yet:
+              Some exercises aren't done yet:
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {incomplete.map((se, i) => (
@@ -225,6 +272,9 @@ export function LiveOverview() {
                   }}
                 >
                   {state.exercises[se.exerciseId]?.name}
+                  {se.addedDuringSession && (
+                    <span className="meta" style={{ marginLeft: 8, color: COLORS.textSecondary }}>extra</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -249,7 +299,7 @@ export function LiveOverview() {
   )
 }
 
-function ExerciseRow({ state, session, se, index, active, now, onOpen }) {
+function ExerciseRow({ state, session, se, index, active, extra = false, now, onOpen }) {
   const exercise = state.exercises[se.exerciseId]
   const people = se.appliesTo.map((id) => personById(state, id))
   const anySkipped = se.appliesTo.find((id) => se.perPerson[id]?.status === 'skipped')
@@ -286,9 +336,13 @@ function ExerciseRow({ state, session, se, index, active, now, onOpen }) {
                 {exercise?.name}
               </div>
             </div>
-            <span className="num display" style={{ fontSize: 20, color: COLORS.textSecondary }}>
-              {String(index + 1).padStart(2, '0')}
-            </span>
+            {extra ? (
+              <span className="meta" style={extraMarker}>Extra</span>
+            ) : (
+              <span className="num display" style={{ fontSize: 20, color: COLORS.textSecondary }}>
+                {String(index + 1).padStart(2, '0')}
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
@@ -350,9 +404,13 @@ function ExerciseRow({ state, session, se, index, active, now, onOpen }) {
         width: '100%',
       }}
     >
-      <span className="num display" style={{ fontSize: 19, color: COLORS.textSecondary, minWidth: 24 }}>
-        {String(index + 1).padStart(2, '0')}
-      </span>
+      {extra ? (
+        <span className="meta" style={{ ...extraMarker, minWidth: 45, textAlign: 'center' }}>Extra</span>
+      ) : (
+        <span className="num display" style={{ fontSize: 19, color: COLORS.textSecondary, minWidth: 24 }}>
+          {String(index + 1).padStart(2, '0')}
+        </span>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="display" style={{ fontSize: 16, textTransform: 'uppercase' }}>{exercise?.name}</span>
@@ -369,6 +427,20 @@ function ExerciseRow({ state, session, se, index, active, now, onOpen }) {
       ))}
     </button>
   )
+}
+
+const separatedSection = {
+  marginTop: 8,
+  paddingTop: 16,
+  borderTop: `${BORDER}px dashed ${COLORS.rule}`,
+}
+
+const extraMarker = {
+  color: COLORS.textSecondary,
+  border: `1px dashed ${COLORS.rule}`,
+  borderRadius: RADII.sm,
+  padding: '3px 6px',
+  flexShrink: 0,
 }
 
 function Empty({ onHome }) {
