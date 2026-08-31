@@ -79,9 +79,10 @@ jobs:
       - name: Bump gym image tag
         run: |
           TAG="sha-${GITHUB_SHA::7}"   # matches docker/metadata-action type=sha
-          sed -i -E "s#(image: ghcr.io/nik5036350/train-together):.*#\1:${TAG}#" infra/gym.yaml
+          # home-infra's infra/ is a Helm chart; gym.yaml lives under templates/
+          sed -i -E "s#(image: ghcr.io/nik5036350/train-together):.*#\1:${TAG}#" infra/templates/gym.yaml
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add infra/gym.yaml
+          git add infra/templates/gym.yaml
           git commit -m "gym: deploy ${TAG}" || { echo "no change to deploy"; exit 0; }
           git push
