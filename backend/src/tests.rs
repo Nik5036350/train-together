@@ -6,19 +6,109 @@ use axum::Router;
 use http_body_util::BodyExt;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter};
 use serde_json::{json, Value};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
 use tower::util::ServiceExt;
 
-async fn app() -> Router {
-    app_with_db().await.0
+// Tests run against a real database file rather than sqlite::memory:. refinery
+// migrates over its own rusqlite connection, and a second connection to an
+// in-memory database is a *different* database — an in-memory test would never
+// see the migrated schema. The file also means every test here exercises the
+// same migrate-then-connect sequence main() uses, which is the only coverage the
+// SQL layer has ever had.
+//
+// TempDb is that file: it deletes itself on drop, along with its -wal/-shm
+// sidecars and any pre-migration snapshots left beside it.
+struct TempDb(PathBuf);
+
+impl TempDb {
+    fn new() -> Self {
+        static NEXT: AtomicU32 = AtomicU32::new(0);
+        Self(std::env::temp_dir().join(format!(
+            "tt-test-{}-{}.db",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        )))
+    }
+
+    fn path(&self) -> &Path {
+        &self.0
+    }
+
+    fn url(&self) -> String {
+        format!("sqlite://{}?mode=rwc", self.0.display())
+    }
+
+    // Files refinery's snapshot step left behind, i.e. `<db>.pre-v<n>-<stamp>`.
+    fn snapshots(&self) -> Vec<PathBuf> {
+        self.siblings()
+            .into_iter()
+            .filter(|p| {
+                p.file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.contains(".pre-v"))
+            })
+            .collect()
+    }
+
+    fn siblings(&self) -> Vec<PathBuf> {
+        let Some((dir, stem)) = self
+            .0
+            .parent()
+            .zip(self.0.file_name().and_then(|n| n.to_str()))
+        else {
+            return Vec::new();
+        };
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return Vec::new();
+        };
+        entries
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| {
+                p.file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.starts_with(stem))
+            })
+            .collect()
+    }
 }
 
-// Same harness, but hands back the connection so a test can assert on rows the
-// aggregate response doesn't expose (e.g. cascade deletes).
-async fn app_with_db() -> (Router, DatabaseConnection) {
-    let db = db::connect("sqlite::memory:").await.unwrap();
-    db::init_schema(&db).await.unwrap();
+impl Drop for TempDb {
+    fn drop(&mut self) {
+        for p in self.siblings() {
+            let _ = std::fs::remove_file(p);
+        }
+    }
+}
+
+struct TestApp {
+    router: Router,
+    // Exposed so a test can assert on rows the aggregate response doesn't
+    // surface (e.g. cascade deletes).
+    db: DatabaseConnection,
+    _tmp: TempDb,
+}
+
+// Lets `call(&app, ..)` go on taking a &Router, via deref coercion.
+impl std::ops::Deref for TestApp {
+    type Target = Router;
+    fn deref(&self) -> &Router {
+        &self.router
+    }
+}
+
+async fn app() -> TestApp {
+    let tmp = TempDb::new();
+    let url = tmp.url();
+    crate::migrate::run(&url).unwrap();
+    let db = db::connect(&url).await.unwrap();
     services::seed::reset_to_seed(&db).await.unwrap();
-    (handlers::router(db.clone()), db)
+    TestApp {
+        router: handlers::router(db.clone()),
+        db,
+        _tmp: tmp,
+    }
 }
 
 async fn call(app: &Router, method: &str, uri: &str, body: Option<Value>) -> Value {
@@ -302,7 +392,7 @@ async fn finishing_moves_session_to_history() {
 
 #[tokio::test]
 async fn deleting_a_finished_workout_removes_it_and_its_sets() {
-    let (app, db) = app_with_db().await;
+    let app = app().await;
     let s = call(&app, "GET", "/api/state", None).await;
     assert_eq!(s["history"].as_array().unwrap().len(), 1);
     assert_eq!(s["history"][0]["id"], "sess_prev");
@@ -316,19 +406,19 @@ async fn deleting_a_finished_workout_removes_it_and_its_sets() {
     // The children the aggregate no longer surfaces are gone from the DB too.
     let sets = set_entry::Entity::find()
         .filter(set_entry::Column::SessionId.eq("sess_prev"))
-        .count(&db)
+        .count(&app.db)
         .await
         .unwrap();
     assert_eq!(sets, 0);
     let participants = session_participant::Entity::find()
         .filter(session_participant::Column::SessionId.eq("sess_prev"))
-        .count(&db)
+        .count(&app.db)
         .await
         .unwrap();
     assert_eq!(participants, 0);
     let exercises = session_exercise::Entity::find()
         .filter(session_exercise::Column::SessionId.eq("sess_prev"))
-        .count(&db)
+        .count(&app.db)
         .await
         .unwrap();
     assert_eq!(exercises, 0);
@@ -338,7 +428,7 @@ async fn deleting_a_finished_workout_removes_it_and_its_sets() {
 async fn deleting_a_finished_workout_cascades_session_exercise_people() {
     // The seeded history session has no session_exercise rows, so drive the
     // cascade with a session that actually built the full graph.
-    let (app, db) = app_with_db().await;
+    let app = app().await;
     let s = call(
         &app,
         "POST",
@@ -372,7 +462,7 @@ async fn deleting_a_finished_workout_cascades_session_exercise_people() {
 
     let sep = session_exercise_person::Entity::find()
         .filter(session_exercise_person::Column::SessionExerciseId.eq(se_id))
-        .count(&db)
+        .count(&app.db)
         .await
         .unwrap();
     assert_eq!(sep, 0);
@@ -403,4 +493,119 @@ async fn deleting_an_unknown_workout_is_not_found() {
     let app = app().await;
     let status = call_status(&app, "DELETE", "/api/sessions/sess_nope").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+// ---- migrations ----
+
+#[test]
+fn db_path_from_url_handles_deployed_and_dev_forms() {
+    use crate::migrate::db_path_from_url;
+    // The deployed URL from infra/gym.yaml: absolute, and not named after this repo.
+    assert_eq!(
+        db_path_from_url("sqlite:///app/data/couples.db?mode=rwc"),
+        Some(PathBuf::from("/app/data/couples.db"))
+    );
+    // The dev default from main().
+    assert_eq!(
+        db_path_from_url("sqlite://./data/train-together.db?mode=rwc"),
+        Some(PathBuf::from("./data/train-together.db"))
+    );
+    // In-memory has no file to migrate or snapshot, and must not be mistaken for one.
+    assert_eq!(db_path_from_url("sqlite::memory:"), None);
+    assert_eq!(db_path_from_url("sqlite://:memory:"), None);
+}
+
+// The risky production event: the live couples.db has every table already (the
+// old init_schema built them) but no refinery_schema_history, so refinery sees V1
+// as unapplied and runs it into a populated database.
+#[tokio::test]
+async fn an_existing_database_is_adopted_without_touching_its_data() {
+    let tmp = TempDb::new();
+    let url = tmp.url();
+
+    assert_eq!(
+        crate::migrate::run(&url).unwrap(),
+        1,
+        "first run applies V1"
+    );
+    {
+        let db = db::connect(&url).await.unwrap();
+        services::seed::reset_to_seed(&db).await.unwrap();
+    }
+
+    // Drop the bookkeeping table to leave exactly what the live database looks
+    // like: full schema, real data, no migration history.
+    let conn = rusqlite::Connection::open(tmp.path()).unwrap();
+    conn.execute("DROP TABLE refinery_schema_history", [])
+        .unwrap();
+    let people_before: i64 = conn
+        .query_row("SELECT count(*) FROM person", [], |r| r.get(0))
+        .unwrap();
+    let sets_before: i64 = conn
+        .query_row("SELECT count(*) FROM set_entry", [], |r| r.get(0))
+        .unwrap();
+    drop(conn);
+    assert!(people_before > 0 && sets_before > 0, "fixture has data");
+    assert!(tmp.snapshots().is_empty(), "nothing snapshotted yet");
+
+    assert_eq!(
+        crate::migrate::run(&url).unwrap(),
+        1,
+        "V1 re-applied as a no-op"
+    );
+
+    // A snapshot was taken before anything was applied, and it is a usable database.
+    let snaps = tmp.snapshots();
+    assert_eq!(snaps.len(), 1, "expected one snapshot, got {snaps:?}");
+    let snap = rusqlite::Connection::open(&snaps[0]).unwrap();
+    let people_in_snap: i64 = snap
+        .query_row("SELECT count(*) FROM person", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(people_in_snap, people_before, "snapshot holds the data");
+    drop(snap);
+
+    // The data survived, and the aggregate still reads.
+    let db = db::connect(&url).await.unwrap();
+    let router = handlers::router(db);
+    let s = call(&router, "GET", "/api/state", None).await;
+    assert_eq!(
+        s["people"].as_array().unwrap().len(),
+        people_before as usize
+    );
+    assert_eq!(s["history"][0]["sets"].as_array().unwrap().len(), 24);
+    assert_eq!(s["history"][0]["sets"][0]["variant"], "normal");
+
+    // Up to date now: nothing applied, and no second snapshot piling up on restart.
+    assert_eq!(crate::migrate::run(&url).unwrap(), 0);
+    assert_eq!(
+        tmp.snapshots().len(),
+        1,
+        "no snapshot when nothing to apply"
+    );
+}
+
+#[tokio::test]
+async fn import_rejects_a_backup_below_the_format_floor() {
+    let app = app().await;
+    let mut backup = call(&app, "GET", "/api/state", None).await;
+    assert_eq!(backup["version"], 3);
+
+    backup["version"] = json!(2);
+    let req = Request::builder()
+        .method("PUT")
+        .uri("/api/state")
+        .header("content-type", "application/json")
+        .body(Body::from(backup.to_string()))
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+
+    // The rejection happens before clear_all, so the database is untouched.
+    let s = call(&app, "GET", "/api/state", None).await;
+    assert_eq!(s["people"].as_array().unwrap().len(), 2);
+
+    // And the current format still imports.
+    backup["version"] = json!(3);
+    let s = call(&app, "PUT", "/api/state", Some(backup)).await;
+    assert_eq!(s["people"].as_array().unwrap().len(), 2);
 }

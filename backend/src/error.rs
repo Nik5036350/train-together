@@ -7,7 +7,6 @@ use sea_orm::DbErr;
 #[derive(Debug)]
 pub enum AppError {
     NotFound(String),
-    #[allow(dead_code)] // reserved for validation failures
     BadRequest(String),
     Db(DbErr),
 }

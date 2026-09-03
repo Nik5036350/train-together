@@ -4,6 +4,7 @@ mod entities;
 mod error;
 mod handlers;
 mod ids;
+mod migrate;
 mod services;
 mod state;
 
@@ -12,15 +13,24 @@ mod tests;
 
 #[tokio::main]
 async fn main() {
-    // SQLite won't create missing parent directories for the DB file.
-    std::fs::create_dir_all("data").ok();
-
     let url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "sqlite://./data/train-together.db?mode=rwc".to_string());
+
+    // Migrate before the pool opens, and refuse to start if it fails — a
+    // half-migrated schema must never serve requests. A snapshot of the database
+    // is taken first, so aborting here is always recoverable.
+    match migrate::run(&url) {
+        Ok(0) => {}
+        Ok(n) => println!("Applied {n} migration(s)"),
+        Err(e) => {
+            eprintln!("FATAL: schema migration failed: {e}");
+            std::process::exit(1);
+        }
+    }
+
     let db = db::connect(&url)
         .await
         .expect("failed to connect to database");
-    db::init_schema(&db).await.expect("failed to create schema");
     services::seed::seed_if_empty(&db)
         .await
         .expect("failed to seed");

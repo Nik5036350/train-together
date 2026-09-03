@@ -1,7 +1,8 @@
 use crate::entities::*;
+use crate::error::{AppError, AppResult};
 use crate::ids::uid;
 use crate::services::seed;
-use crate::state::{SessionResp, StateResponse};
+use crate::state::{SessionResp, StateResponse, BACKUP_FORMAT_VERSION};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr};
 
@@ -16,7 +17,17 @@ pub async fn restore_demo_routine(db: &DatabaseConnection) -> Result<(), DbErr> 
     seed::restore_demo_routine(db).await
 }
 
-pub async fn import_state(db: &DatabaseConnection, state: StateResponse) -> Result<(), DbErr> {
+pub async fn import_state(db: &DatabaseConnection, state: StateResponse) -> AppResult<()> {
+    // Reject anything older than the format the serde defaults are written to
+    // tolerate, rather than clearing the database and then half-importing a shape
+    // that cannot be represented. This runs before clear_all for that reason.
+    if state.version < BACKUP_FORMAT_VERSION {
+        return Err(AppError::BadRequest(format!(
+            "backup format version {} is too old to import (minimum {BACKUP_FORMAT_VERSION})",
+            state.version
+        )));
+    }
+
     seed::clear_all(db).await?;
 
     app_settings::ActiveModel {
