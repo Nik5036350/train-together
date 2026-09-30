@@ -49,6 +49,11 @@ public enum Format {
         Date(epochMilliseconds: ms).formatted(.dateTime.weekday(.abbreviated).locale(locale))
     }
 
+    /// Epoch ms → "12 Aug" (uppercased by the label styles).
+    public static func dayMonth(_ ms: Int64, locale: Locale = .current) -> String {
+        Date(epochMilliseconds: ms).formatted(.dateTime.day().month(.abbreviated).locale(locale))
+    }
+
     /// 3 → "03" for set ordinals.
     public static func ordinal(_ n: Int) -> String { pad2(n) }
 

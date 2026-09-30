@@ -48,6 +48,7 @@ struct MainTabs: View {
                         .navigationDestination(for: HistoryRoute.self) { route in
                             switch route {
                             case .workout(let id): WorkoutDetailView(sessionId: id)
+                            case .exercise(let id, let session): ExerciseProgressView(exerciseId: id, highlightSession: session)
                             }
                         }
                 }

@@ -23,10 +23,14 @@ public struct Person: SyncEntity {
     public var unit: WeightUnit
     public var isOwner: Bool
     public var active: Bool
+    /// For strength scores (1RM formula, DOTS). Never inferred; nil = unset.
+    public var sex: Sex?
+    /// Current bodyweight in the person's `unit`, for DOTS.
+    public var bodyweight: Double?
 
     public init(
         id: String, name: String, initials: String, color: String, unit: WeightUnit,
-        isOwner: Bool, active: Bool = true
+        isOwner: Bool, active: Bool = true, sex: Sex? = nil, bodyweight: Double? = nil
     ) {
         self.id = id
         self.name = name
@@ -35,9 +39,35 @@ public struct Person: SyncEntity {
         self.unit = unit
         self.isOwner = isOwner
         self.active = active
+        self.sex = sex
+        self.bodyweight = bodyweight
     }
 
     public var personColor: PersonColor { PersonColor(key: color) }
+}
+
+extension Person {
+    enum CodingKeys: String, CodingKey {
+        case id, name, initials, color, unit, isOwner, active, sex, bodyweight
+    }
+
+    // The profile fields came later and are optional: a payload without them,
+    // or with a value this version doesn't understand, still decodes — the
+    // field is just unset (restore would otherwise drop the whole person).
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try c.decode(String.self, forKey: .id),
+            name: try c.decode(String.self, forKey: .name),
+            initials: try c.decode(String.self, forKey: .initials),
+            color: try c.decode(String.self, forKey: .color),
+            unit: try c.decode(WeightUnit.self, forKey: .unit),
+            isOwner: try c.decode(Bool.self, forKey: .isOwner),
+            active: try c.decodeIfPresent(Bool.self, forKey: .active) ?? true,
+            sex: (try? c.decodeIfPresent(String.self, forKey: .sex)).flatMap(Sex.init(rawValue:)),
+            bodyweight: (try? c.decodeIfPresent(Double.self, forKey: .bodyweight)).flatMap { $0 > 0 ? $0 : nil }
+        )
+    }
 }
 
 /// The single settings row (id "app").

@@ -40,6 +40,18 @@ public struct ExerciseDraft: Sendable {
     }
 }
 
+/// A person's sex and bodyweight, saved together. Passing nil for the
+/// whole profile leaves both unchanged; nil fields clear them.
+public struct BodyProfile: Sendable, Hashable {
+    public var sex: Sex?
+    public var bodyweight: Double?
+
+    public init(sex: Sex?, bodyweight: Double?) {
+        self.sex = sex
+        self.bodyweight = bodyweight.flatMap { $0 > 0 ? $0 : nil }
+    }
+}
+
 public struct ProfileDraft: Sendable, Hashable {
     public var personId: String
     public var restSeconds: Int?
@@ -74,7 +86,9 @@ extension WorkoutEngine {
 
     /// Creates the partner, or updates the existing one.
     @discardableResult
-    public func savePartner(name: String, color: PersonColor, unit: WeightUnit, initials: String? = nil) throws -> String {
+    public func savePartner(
+        name: String, color: PersonColor, unit: WeightUnit, initials: String? = nil, body: BodyProfile? = nil
+    ) throws -> String {
         try write { db in
             let name = try requireName(name)
             var settings = try settings(db)
@@ -85,12 +99,17 @@ extension WorkoutEngine {
                 partner.color = color.rawValue
                 partner.unit = unit
                 partner.initials = initialsFor(name, initials)
+                if let body {
+                    partner.sex = body.sex
+                    partner.bodyweight = body.bodyweight
+                }
                 try partner.update(db)
                 return partner.id
             }
             let partner = Person(
                 id: newID(), name: name, initials: initialsFor(name, initials),
-                color: color.rawValue, unit: unit, isOwner: false
+                color: color.rawValue, unit: unit, isOwner: false,
+                sex: body?.sex, bodyweight: body?.bodyweight
             )
             try partner.insert(db)
             return partner.id
@@ -99,7 +118,7 @@ extension WorkoutEngine {
 
     public func updatePerson(
         id: String, name: String? = nil, color: PersonColor? = nil, unit: WeightUnit? = nil,
-        initials: String? = nil
+        initials: String? = nil, body: BodyProfile? = nil
     ) throws {
         try write { db in
             guard var person = try Person.fetchOne(db, key: id) else { throw EngineError.notFound("PERSON") }
@@ -107,6 +126,10 @@ extension WorkoutEngine {
             if let color { person.color = color.rawValue }
             if let unit { person.unit = unit }
             if let initials { person.initials = initialsFor(person.name, initials) }
+            if let body {
+                person.sex = body.sex
+                person.bodyweight = body.bodyweight
+            }
             try person.update(db)
         }
     }

@@ -15,7 +15,14 @@ enum WorkoutCover: Hashable {
 }
 
 enum WorkoutRoute: Hashable { case routine(String) }
-enum HistoryRoute: Hashable { case workout(String) }
+enum HistoryRoute: Hashable {
+    case workout(String)
+    /// An exercise's progress; `session` pre-selects that workout's point.
+    case exercise(String, session: String? = nil)
+}
+
+/// What the History tab lists.
+enum HistoryMode: Hashable { case workouts, exercises }
 enum SettingsRoute: Hashable { case person(String), addPartner, exercises, exercise(String?), sync, data }
 
 /// A UIKit background task that's ended exactly once.
@@ -58,6 +65,7 @@ final class AppModel {
     var selectedTab: AppTab = .workout
     var workoutPath: [WorkoutRoute] = []
     var historyPath: [HistoryRoute] = []
+    var historyMode: HistoryMode = .workouts
     var settingsPath: [SettingsRoute] = []
     var workoutCover: WorkoutCover?
     var snackbar: SnackbarState?
@@ -221,7 +229,14 @@ final class AppModel {
     func showWorkoutInHistory(_ sessionId: String) {
         workoutCover = nil
         selectedTab = .history
+        historyMode = .workouts
         historyPath = [.workout(sessionId)]
+    }
+
+    /// Opens a person's profile (e.g. to fill in sex and bodyweight for DOTS).
+    func editPerson(_ personId: String) {
+        selectedTab = .settings
+        settingsPath = [.person(personId)]
     }
 
     // MARK: Rest-ready feedback

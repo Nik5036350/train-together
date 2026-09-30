@@ -171,6 +171,19 @@ public final class AppDatabase: Sendable {
         // Every later migration that creates, alters or rebuilds a synced table
         // must end with `try SyncTriggers.install(db)`: rebuilding a table drops
         // its triggers, and the UPDATE trigger's column list must match.
+
+        // Profile fields for strength scores, and an index for per-exercise
+        // analytics. ADD COLUMN fires no triggers, so nothing is queued.
+        migrator.registerMigration("v2", foreignKeyChecks: .immediate) { db in
+            try db.alter(table: Person.databaseTableName) { t in
+                t.add(column: "sex", .text)
+                t.add(column: "bodyweight", .double)
+            }
+            try db.create(index: "set_entry_exercise", on: SetEntry.databaseTableName,
+                          columns: ["exerciseId", "variant"])
+            try SyncTriggers.install(db)
+        }
+
         return migrator
     }
 }

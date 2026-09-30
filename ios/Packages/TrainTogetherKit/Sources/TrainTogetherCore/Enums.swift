@@ -87,3 +87,17 @@ public enum WeightUnit: String, TolerantStringEnum {
     case kg, lb
     public static let fallback = WeightUnit.kg
 }
+
+/// Sex, used only for strength scores (the 1RM formula and DOTS). A plain
+/// enum rather than a TolerantStringEnum: an unknown value must stay unset,
+/// never fall back to a guess.
+public enum Sex: String, Codable, Hashable, Sendable, CaseIterable {
+    case male, female
+
+    public var label: String {
+        switch self {
+        case .male: "Male"
+        case .female: "Female"
+        }
+    }
+}
