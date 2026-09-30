@@ -110,11 +110,14 @@ public struct Exercise: SyncEntity {
     public var tracksReps: Bool
     public var tracksDuration: Bool
     public var defaultRestSeconds: Int
+    /// An `ExerciseIcon` raw value picked for this exercise; nil shows the
+    /// one its name suggests (`resolvedIcon`). Added later, so optional.
+    public var icon: String?
 
     public init(
         id: String, name: String, category: String = "", equipment: String = "",
         tracksWeight: Bool = true, tracksReps: Bool = true, tracksDuration: Bool = false,
-        defaultRestSeconds: Int = Exercise.defaultRestSeconds
+        defaultRestSeconds: Int = Exercise.defaultRestSeconds, icon: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -124,6 +127,7 @@ public struct Exercise: SyncEntity {
         self.tracksReps = tracksReps
         self.tracksDuration = tracksDuration
         self.defaultRestSeconds = defaultRestSeconds
+        self.icon = icon
     }
 
     /// "Weight · Reps" — what the exercise measures, for library rows.

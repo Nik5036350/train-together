@@ -12,12 +12,15 @@ public struct ExerciseDraft: Sendable {
     public var tracksReps: Bool
     public var tracksDuration: Bool
     public var defaultRestSeconds: Int
+    /// The picked pictogram; nil follows the name.
+    public var icon: ExerciseIcon?
     public var profiles: [ProfileDraft]
 
     public init(
         id: String? = nil, name: String, category: String = "", equipment: String = "",
         tracksWeight: Bool = true, tracksReps: Bool = true, tracksDuration: Bool = false,
-        defaultRestSeconds: Int = Exercise.defaultRestSeconds, profiles: [ProfileDraft] = []
+        defaultRestSeconds: Int = Exercise.defaultRestSeconds, icon: ExerciseIcon? = nil,
+        profiles: [ProfileDraft] = []
     ) {
         self.id = id
         self.name = name
@@ -27,6 +30,7 @@ public struct ExerciseDraft: Sendable {
         self.tracksReps = tracksReps
         self.tracksDuration = tracksDuration
         self.defaultRestSeconds = defaultRestSeconds
+        self.icon = icon
         self.profiles = profiles
     }
 
@@ -35,7 +39,8 @@ public struct ExerciseDraft: Sendable {
             id: exercise.id, name: exercise.name, category: exercise.category,
             equipment: exercise.equipment, tracksWeight: exercise.tracksWeight,
             tracksReps: exercise.tracksReps, tracksDuration: exercise.tracksDuration,
-            defaultRestSeconds: exercise.defaultRestSeconds, profiles: profiles
+            defaultRestSeconds: exercise.defaultRestSeconds,
+            icon: exercise.icon.flatMap(ExerciseIcon.init(rawValue:)), profiles: profiles
         )
     }
 }
@@ -172,7 +177,7 @@ extension WorkoutEngine {
                 id: draft.id ?? newID(), name: name, category: draft.category,
                 equipment: draft.equipment, tracksWeight: draft.tracksWeight,
                 tracksReps: draft.tracksReps, tracksDuration: draft.tracksDuration,
-                defaultRestSeconds: max(0, draft.defaultRestSeconds)
+                defaultRestSeconds: max(0, draft.defaultRestSeconds), icon: draft.icon?.rawValue
             )
             try exercise.save(db)
             for p in draft.profiles {
@@ -183,6 +188,22 @@ extension WorkoutEngine {
                 ).save(db)
             }
             return exercise.id
+        }
+    }
+
+    /// Adds a popular exercise to the library and returns its id. When the
+    /// library already has it (same id, or an exercise by one of its names),
+    /// returns that one and changes nothing.
+    @discardableResult
+    public func addPopularExercise(id: String) throws -> String {
+        guard let entry = PopularExercises.entry(id: id) else { throw EngineError.notFound("EXERCISE") }
+        return try write { db in
+            if let existing = try Exercise.fetchOne(db, key: entry.id) { return existing.id }
+            if let existing = try Exercise.fetchAll(db).first(where: { entry.matches(name: $0.name) }) {
+                return existing.id
+            }
+            try entry.exercise.insert(db)
+            return entry.id
         }
     }
 

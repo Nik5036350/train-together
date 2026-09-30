@@ -516,6 +516,68 @@ struct IconTile: View {
     }
 }
 
+/// An exercise in a list: its pictogram tile, name and a line of detail.
+struct ExerciseRowLabel: View {
+    let icon: ExerciseIcon
+    let name: String
+    var detail = ""
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ExerciseTile(icon)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(name).font(Typeface.condensed(17)).textCase(.uppercase)
+                if !detail.isEmpty {
+                    Text(detail).font(Typeface.body(13)).foregroundStyle(Palette.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+extension ExerciseRowLabel {
+    /// A library exercise, detailed by category and what it tracks.
+    init(_ exercise: Exercise) {
+        self.init(
+            icon: exercise.resolvedIcon, name: exercise.name,
+            detail: [exercise.category, exercise.tracksSummary].filter { !$0.isEmpty }.joined(separator: " · ")
+        )
+    }
+
+    /// A popular exercise, detailed by equipment and what it tracks.
+    init(_ entry: PopularExercise) {
+        self.init(
+            icon: entry.icon, name: entry.name,
+            detail: [entry.equipment, entry.exercise.tracksSummary].filter { !$0.isEmpty }.joined(separator: " · ")
+        )
+    }
+}
+
+/// Muscle-group chips (All, Chest, Back, …) for filtering exercise lists.
+struct MuscleGroupFilter: View {
+    @Binding var selection: MuscleGroup?
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 6) {
+                chip("All", nil)
+                ForEach(MuscleGroup.allCases, id: \.self) { chip($0.label, $0) }
+            }
+            .padding(.horizontal, 18)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func chip(_ label: String, _ group: MuscleGroup?) -> some View {
+        let selected = selection == group
+        return Button { selection = group } label: { Chip(text: label, filled: selected) }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
 /// The heavy rule under a screen title.
 struct TitleRule: View {
     var height: CGFloat = 4

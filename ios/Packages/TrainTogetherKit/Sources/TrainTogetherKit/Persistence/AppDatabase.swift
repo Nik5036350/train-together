@@ -184,6 +184,14 @@ public final class AppDatabase: Sendable {
             try SyncTriggers.install(db)
         }
 
+        // A picked pictogram per exercise; NULL means "from the name".
+        migrator.registerMigration("v3", foreignKeyChecks: .immediate) { db in
+            try db.alter(table: Exercise.databaseTableName) { t in
+                t.add(column: "icon", .text)
+            }
+            try SyncTriggers.install(db)
+        }
+
         return migrator
     }
 }

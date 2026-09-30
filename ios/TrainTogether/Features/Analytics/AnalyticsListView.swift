@@ -244,6 +244,7 @@ private struct ExerciseSummaryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            ExerciseTile(summary.exercise.resolvedIcon)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(summary.exercise.name).font(Typeface.condensed(18)).textCase(.uppercase).lineLimit(1)

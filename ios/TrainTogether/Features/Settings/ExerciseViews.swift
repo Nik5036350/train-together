@@ -13,12 +13,7 @@ struct ExerciseLibraryView: View {
         List {
             ForEach(exercises) { exercise in
                 NavigationLink(value: SettingsRoute.exercise(exercise.id)) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(exercise.name).font(Typeface.condensed(17)).textCase(.uppercase)
-                        Text([exercise.category, exercise.tracksSummary].filter { !$0.isEmpty }.joined(separator: " · "))
-                            .font(Typeface.body(13))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
+                    ExerciseRowLabel(exercise)
                 }
                 .listRowBackground(Palette.canvas)
                 .swipeActions {
@@ -88,6 +83,13 @@ struct ExerciseEditorView: View {
                 TextField("Name", text: $draft.name).font(Typeface.condensed(20))
                 TextField("Category (e.g. Chest)", text: $draft.category)
                 TextField("Equipment (e.g. Barbell)", text: $draft.equipment)
+            }
+            Section {
+                IconPicker(selection: $draft.icon, suggested: .suggested(for: draft.name))
+            } header: {
+                Text("Icon")
+            } footer: {
+                Text(draft.icon == nil ? "Follows the name." : "Picked. Tap it again to follow the name.")
             }
             Section {
                 Toggle("Weight", isOn: $draft.tracksWeight)
@@ -168,5 +170,33 @@ struct ExerciseEditorView: View {
         var savedID: String?
         guard model.perform("SAVING THE EXERCISE", { savedID = try $0.saveExercise(draft) }), let savedID else { return }
         if let onSaved { onSaved(savedID) } else { dismiss() }
+    }
+}
+
+/// Every pictogram in a grid. Nil selection follows the name: the suggested
+/// one shows as chosen until another is picked; tapping the picked one
+/// again goes back to following the name.
+private struct IconPicker: View {
+    @Binding var selection: ExerciseIcon?
+    let suggested: ExerciseIcon
+
+    var body: some View {
+        let shown = selection ?? suggested
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 46), spacing: 8)], spacing: 8) {
+            ForEach(ExerciseIcon.allCases, id: \.self) { icon in
+                let chosen = icon == shown
+                Button { selection = icon == selection ? nil : icon } label: {
+                    ExerciseGlyph(icon: icon, size: 30)
+                        .foregroundStyle(chosen ? Palette.paper : Palette.ink)
+                        .frame(width: 46, height: 46)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(chosen ? Palette.ink : Palette.canvas))
+                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(chosen ? Palette.ink : Palette.ruleSoft, lineWidth: Stroke.width))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(icon.label)
+                .accessibilityAddTraits(chosen ? .isSelected : [])
+            }
+        }
+        .padding(.vertical, 6)
     }
 }

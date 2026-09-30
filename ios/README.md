@@ -75,3 +75,14 @@ cd ../ios && xcodebuild -scheme TrainTogetherE2E -destination 'platform=iOS Simu
   - New fields must be optional or have a default.
 
 Adding a column to a synced table takes a new GRDB migration that ends with `SyncTriggers.install(db)`.
+
+## Exercise pictograms and popular exercises
+
+- **Pictograms** are drawn in code (`TrainTogether/DesignSystem/ExerciseIcons.swift`) in the style-guide icon construction: circles, rectangles and square-capped strokes on a 24-point grid. There are no image assets and no third-party icons.
+- **Which pictogram an exercise gets:** `Exercise.icon` holds a picked `ExerciseIcon` raw value.
+  - When it's nil or unknown, `ExerciseIcon.suggested(for:)` picks one from the name ("Trap bar deadlift" gets deadlift).
+  - Keyword rules run in order, specific phrases first. When you add a rule, add the name to `LibraryTests`.
+- **Popular exercises** (`TrainTogetherCore/PopularExercises.swift`) show in the Add exercise sheet but aren't in the library.
+  - Picking one inserts it under its fixed id (`WorkoutEngine.addPopularExercise`).
+  - An exercise already in the library with the same name or an alias hides the entry, so nothing appears twice.
+  - Ids shared with the demo routine (`ex_bench`, …) refer to the same exercise.
