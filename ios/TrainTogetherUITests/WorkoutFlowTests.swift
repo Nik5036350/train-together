@@ -98,6 +98,40 @@ final class WorkoutFlowTests: XCTestCase {
         snapshot("13-sync")
     }
 
+    /// Read-only: restores from the server and walks History and Settings →
+    /// Data (phone vs server counts) for screenshots — nothing is written
+    /// back, so it's safe against production
+    /// (`TEST_RUNNER_TT_E2E_SERVER=https://… TEST_RUNNER_TT_E2E_TOKEN=…`).
+    /// Uninstall the app afterwards so the simulator can't become a second
+    /// writer.
+    func testRestoreOnly() throws {
+        button("Restore from server").tap()
+        let fields = app.textFields
+        fields.element(boundBy: 0).tap()
+        fields.element(boundBy: 0).typeText(server)
+        fields.element(boundBy: 1).tap()
+        fields.element(boundBy: 1).typeText(token)
+        button("Restore").tap()
+        dismissSystemPrompts()
+        XCTAssertTrue(app.tabBars.buttons["History"].waitForExistence(timeout: 30), "restore didn't finish")
+        snapshot("restore-01-workout")
+
+        // History renders rows lazily, so only check it isn't empty; the Data
+        // screen below is the count comparison.
+        app.tabBars.buttons["History"].tap()
+        XCTAssertTrue(app.cells.firstMatch.waitForExistence(timeout: 5), "no workouts restored")
+        snapshot("restore-02-history")
+
+        // Settings → Data compares the phone's record counts with the server's.
+        app.tabBars.buttons["Settings"].tap()
+        let dataRow = app.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Data on this phone")).firstMatch
+        for _ in 0..<4 where !dataRow.isHittable { app.swipeUp() }
+        dataRow.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "Sets")).firstMatch.waitForExistence(timeout: 10))
+        sleep(2) // the server column loads asynchronously
+        snapshot("restore-03-data")
+    }
+
     // MARK: Helpers
 
     /// Springboard prompts (e.g. "Save Password?") that would swallow taps.
