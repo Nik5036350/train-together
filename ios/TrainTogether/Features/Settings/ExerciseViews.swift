@@ -104,21 +104,25 @@ struct ExerciseEditorView: View {
                 }
             }
             ForEach(people) { person in
-                Section {
-                    let index = profileIndex(person.id)
-                    Toggle("Own rest time", isOn: Binding(
-                        get: { draft.profiles[index].restSeconds != nil },
-                        set: { draft.profiles[index].restSeconds = $0 ? draft.defaultRestSeconds : nil }
-                    ))
-                    if let rest = draft.profiles[index].restSeconds {
-                        Stepper(value: Binding(get: { rest }, set: { draft.profiles[index].restSeconds = $0 }), in: 0...900, step: 15) {
-                            LabeledContent("Rest", value: Format.duration(rest))
+                // The per-person drafts are filled in on appear; the first
+                // render happens before that, so only show a person's
+                // section once their draft exists.
+                if let index = draft.profiles.firstIndex(where: { $0.personId == person.id }) {
+                    Section {
+                        Toggle("Own rest time", isOn: Binding(
+                            get: { draft.profiles[index].restSeconds != nil },
+                            set: { draft.profiles[index].restSeconds = $0 ? draft.defaultRestSeconds : nil }
+                        ))
+                        if let rest = draft.profiles[index].restSeconds {
+                            Stepper(value: Binding(get: { rest }, set: { draft.profiles[index].restSeconds = $0 }), in: 0...900, step: 15) {
+                                LabeledContent("Rest", value: Format.duration(rest))
+                            }
                         }
+                        TextField("Machine setup (e.g. seat 4)", text: $draft.profiles[index].machineSetup)
+                        TextField("Cues (e.g. tuck elbows)", text: $draft.profiles[index].cues)
+                    } header: {
+                        Text(person.name).foregroundStyle(person.style.text)
                     }
-                    TextField("Machine setup (e.g. seat 4)", text: $draft.profiles[index].machineSetup)
-                    TextField("Cues (e.g. tuck elbows)", text: $draft.profiles[index].cues)
-                } header: {
-                    Text(person.name).foregroundStyle(person.style.text)
                 }
             }
             if let exerciseId, let exercise = model.catalog.exercise(exerciseId) {
@@ -140,10 +144,6 @@ struct ExerciseEditorView: View {
         }
         .onAppear(perform: load)
         .modifier(DeleteExerciseDialog(exercise: $deleting, onDeleted: { dismiss() }))
-    }
-
-    private func profileIndex(_ personId: String) -> Int {
-        draft.profiles.firstIndex { $0.personId == personId } ?? 0
     }
 
     private func load() {
