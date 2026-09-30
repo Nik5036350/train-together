@@ -245,7 +245,7 @@ struct EditSetSheet: View {
             Button("Delete set") { confirmDelete = true }
                 .buttonStyle(DangerButtonStyle())
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large]) // at half height the delete button was cut off
         .sensoryFeedback(.warning, trigger: deleteTick)
         .onAppear {
             values = InputValues(set.values)

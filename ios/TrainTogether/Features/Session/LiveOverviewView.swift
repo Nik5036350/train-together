@@ -101,6 +101,7 @@ struct LiveOverviewView: View {
             }
         }
         .paperBackground()
+        .solidTopEdge()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -149,6 +150,7 @@ struct LiveOverviewView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("card-\(number)")
             }
         }
     }

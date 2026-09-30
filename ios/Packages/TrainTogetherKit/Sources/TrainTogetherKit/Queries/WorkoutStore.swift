@@ -41,6 +41,17 @@ public final class WorkoutStore: Sendable {
         return observe { db in try Queries.analytics(db, now: ms, calendar: calendar) }
     }
 
+    /// This week's training days and the routine up next. Like analytics,
+    /// `now` fixes the week; re-subscribe when the day changes.
+    public func observeHome(now: Date = .now, calendar: Calendar = .current) -> AsyncThrowingStream<HomeSnapshot, any Error> {
+        let ms = now.epochMilliseconds
+        return observe { db in try Queries.home(db, now: ms, calendar: calendar) }
+    }
+
+    public func home(now: Date = .now, calendar: Calendar = .current) throws -> HomeSnapshot {
+        try database.reader.read { db in try Queries.home(db, now: now.epochMilliseconds, calendar: calendar) }
+    }
+
     public func observeExerciseProgress(exerciseId: String) -> AsyncThrowingStream<ExerciseProgress?, any Error> {
         observe { db in try Queries.exerciseProgress(db, exerciseId: exerciseId) }
     }

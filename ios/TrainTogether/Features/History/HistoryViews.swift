@@ -15,6 +15,9 @@ struct HistoryListView: View {
             }
         }
         .navigationTitle("HISTORY")
+        // Inline: a large title collapsing over the pinned mode switch fed
+        // back into the switch's inset and made the top of the list jitter.
+        .navigationBarTitleDisplayMode(.inline)
         .safeAreaBar(edge: .top) {
             Segmented(options: [(HistoryMode.workouts, "Workouts"), (.exercises, "Exercises")], selection: $model.historyMode)
                 .accessibilityIdentifier("history-mode")
@@ -171,6 +174,7 @@ struct WorkoutDetailView: View {
             }
         }
         .paperBackground()
+        .solidTopEdge()
         .navigationBarTitleDisplayMode(.inline)
         .task {
             do {
