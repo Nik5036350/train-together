@@ -4,6 +4,15 @@ backend/data/
 backend/static/*
 !backend/static/.gitkeep
 
+# iOS (the Xcode project is generated from ios/project.yml)
+ios/*.xcodeproj/
+ios/Config/Signing.xcconfig
+ios/Packages/*/.build/
+ios/build/
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
 # Misc
 .DS_Store
 *.local

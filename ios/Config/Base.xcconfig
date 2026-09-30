@@ -1,0 +1,4 @@
+// Shared build settings. Signing.xcconfig (gitignored) holds your Apple
+// Personal Team id; the optional include keeps a fresh checkout building for
+// the simulator without it.
+#include? "Signing.xcconfig"

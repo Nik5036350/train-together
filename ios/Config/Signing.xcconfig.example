@@ -1,0 +1,4 @@
+// Copy to Signing.xcconfig (gitignored) and set your team id:
+// Xcode → Settings → Accounts → your Apple ID → Personal Team, or read it from
+// an existing project's Signing & Capabilities tab.
+DEVELOPMENT_TEAM = ABCDE12345
