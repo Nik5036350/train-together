@@ -4,7 +4,8 @@ import TrainTogetherCore
 // Exercise pictograms (§8), in the style of the brand figures: a round head,
 // a thick torso bar, limbs of one weight with square caps, equipment in
 // rectangles and plates. Coordinates are on a 24-point grid; side views show
-// a barbell end-on as a plate.
+// a barbell end-on as a plate. (First generated from a design sketch; edit
+// the coordinates here.)
 
 /// An exercise's pictogram, drawn in the foreground style.
 struct ExerciseGlyph: View {
@@ -32,21 +33,24 @@ struct ExerciseGlyph: View {
     }
 }
 
-/// The pictogram on an ink square: how exercises appear in lists.
+/// The pictogram on an ink square: how exercises appear in lists. On dark
+/// surfaces the square is paper instead.
 struct ExerciseTile: View {
     let icon: ExerciseIcon
+    let onDark: Bool
     @ScaledMetric private var size: CGFloat
 
-    init(_ icon: ExerciseIcon, size: CGFloat = 36) {
+    init(_ icon: ExerciseIcon, size: CGFloat = 36, onDark: Bool = false) {
         self.icon = icon
+        self.onDark = onDark
         _size = ScaledMetric(wrappedValue: size, relativeTo: .headline)
     }
 
     var body: some View {
         ExerciseGlyph(icon: icon, size: size * 0.74)
-            .foregroundStyle(Palette.paper)
+            .foregroundStyle(onDark ? Palette.ink : Palette.paper)
             .frame(width: size, height: size)
-            .background(RoundedRectangle(cornerRadius: 4).fill(Palette.ink))
+            .background(RoundedRectangle(cornerRadius: 4).fill(onDark ? Palette.paper : Palette.ink))
             .accessibilityHidden(true)
     }
 }

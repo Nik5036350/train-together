@@ -54,6 +54,20 @@ public enum Format {
         Date(epochMilliseconds: ms).formatted(.dateTime.day().month(.abbreviated).locale(locale))
     }
 
+    /// Epoch ms → "Today", "Yesterday", "6 days ago", or "12 Aug" from two
+    /// weeks back. Counts calendar days, not 24-hour spans.
+    public static func daysAgo(_ ms: Int64, now: Int64, calendar: Calendar = .current, locale: Locale = .current) -> String {
+        let then = calendar.startOfDay(for: Date(epochMilliseconds: ms))
+        let today = calendar.startOfDay(for: Date(epochMilliseconds: now))
+        let days = calendar.dateComponents([.day], from: then, to: today).day ?? 0
+        switch days {
+        case ..<1: return "Today"
+        case 1: return "Yesterday"
+        case 2..<14: return "\(days) days ago"
+        default: return dayMonth(ms, locale: locale)
+        }
+    }
+
     /// 3 → "03" for set ordinals.
     public static func ordinal(_ n: Int) -> String { pad2(n) }
 

@@ -76,6 +76,20 @@ cd ../ios && xcodebuild -scheme TrainTogetherE2E -destination 'platform=iOS Simu
 
 Adding a column to a synced table takes a new GRDB migration that ends with `SyncTriggers.install(db)`.
 
+## Screen tour (visual audit)
+
+`ScreenTourTests.testTour` restores from a local backend and visits every screen and sheet: onboarding, the Workout tab, a live workout with its sheets, History, Settings, and the finish and summary screens. It screenshots each one.
+
+1. Start a backend as described in `WorkoutFlowTests`. For realistic content, point `DATABASE_URL` at a copy of a production backup and run `import-legacy`.
+2. Run the tour:
+
+   ```bash
+   TEST_RUNNER_TT_SHOTS_DIR=/tmp/shots xcodebuild test -project TrainTogether.xcodeproj -scheme TrainTogetherE2E \
+     -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:TrainTogetherUITests/ScreenTourTests/testTour
+   ```
+
+The screenshots land in `/tmp/shots` as numbered PNGs. `testBrowseHistoryScroll` flicks History to the top and back, for a screen recording (`xcrun simctl io booted recordVideo`).
+
 ## Exercise pictograms and popular exercises
 
 - **Pictograms** are drawn in code (`TrainTogether/DesignSystem/ExerciseIcons.swift`) in the style-guide icon construction: circles, rectangles and square-capped strokes on a 24-point grid. There are no image assets and no third-party icons.

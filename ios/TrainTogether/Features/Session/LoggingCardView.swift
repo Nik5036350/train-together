@@ -110,6 +110,7 @@ struct LoggingCardView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .paperBackground()
+        .solidTopEdge()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -544,7 +545,9 @@ private struct ActionLabel: View {
     var body: some View {
         VStack(spacing: 6) {
             Icon(icon, size: 15)
-            Text(label).metaStyle(Palette.ink, size: 10)
+            // One line: "Substitute" would otherwise break mid-word on
+            // narrow phones.
+            Text(label).metaStyle(Palette.ink, size: 10).lineLimit(1).minimumScaleFactor(0.7)
         }
         .foregroundStyle(Palette.ink)
         .frame(maxWidth: .infinity, minHeight: 52)

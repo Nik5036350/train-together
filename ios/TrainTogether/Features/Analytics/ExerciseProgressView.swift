@@ -108,6 +108,7 @@ struct ExerciseProgressView: View {
             }
         }
         .paperBackground()
+        .solidTopEdge()
         .navigationBarTitleDisplayMode(.inline)
         .task {
             do {
@@ -228,6 +229,9 @@ struct ExerciseProgressView: View {
                     }
                 }
             }
+            // Chips scroll to the screen edge but rest on the page margin.
+            .contentMargins(.horizontal, 18, for: .scrollContent)
+            .padding(.horizontal, -18)
             if !hasE1RM && metrics.contains(.e1rm) {
                 Text("Est. 1RM needs sets of 1–10 reps").metaStyle(size: 10)
             }

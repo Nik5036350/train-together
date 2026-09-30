@@ -125,6 +125,10 @@ struct InProgressBar: View {
                         }
                     }
                     .padding(.horizontal, 12)
+                    // The whole bar, gaps included, is the button: a plain
+                    // button otherwise only reacts on its text.
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
                 }
             }
             .buttonStyle(.plain)

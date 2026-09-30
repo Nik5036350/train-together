@@ -25,6 +25,7 @@ struct SettingsView: View {
                     NavigationLink(value: SettingsRoute.person(owner.id)) {
                         PersonRow(person: owner, caption: "You")
                     }
+                    .accessibilityIdentifier("settings-owner")
                 }
                 if let partner = catalog.partner {
                     NavigationLink(value: SettingsRoute.person(partner.id)) {
@@ -41,6 +42,7 @@ struct SettingsView: View {
                 NavigationLink(value: SettingsRoute.exercises) {
                     LabeledContent("Exercises", value: "\(catalog.exercises.count)")
                 }
+                .accessibilityIdentifier("settings-exercises")
             }
 
             Section {

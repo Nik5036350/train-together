@@ -88,10 +88,10 @@ struct RoutineBuilderView: View {
             }
 
             Section {
+                // A plain destructive row, like "Delete exercise": a bordered
+                // button here gets clipped by the row's rounded corners.
                 Button("Delete routine", role: .destructive) { confirmDelete = true }
-                    .buttonStyle(DangerButtonStyle())
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Palette.canvas)
             }
         }
         .listStyle(.insetGrouped)

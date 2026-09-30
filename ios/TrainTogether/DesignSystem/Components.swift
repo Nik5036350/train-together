@@ -601,6 +601,13 @@ extension View {
     func paperBackground() -> some View {
         background(Palette.paper.ignoresSafeArea())
     }
+
+    /// For screens whose big title is part of the scrolling content: a hard
+    /// edge under the bars, so display type scrolled up doesn't show through
+    /// behind the clock and the toolbar buttons.
+    func solidTopEdge() -> some View {
+        scrollEdgeEffectStyle(.hard, for: .top)
+    }
 }
 
 // MARK: - Texture (§18)
