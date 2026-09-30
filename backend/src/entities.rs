@@ -244,3 +244,53 @@ pub mod rest_timer {
     pub enum Relation {}
     impl ActiveModelBehavior for ActiveModel {}
 }
+
+// ---- sync store (offline-first iOS client) ----
+//
+// The iOS app owns the domain; the server keeps a durable, domain-agnostic copy
+// of its records. One row per (entity, record_id): the record's camelCase JSON,
+// or a tombstone. `seq` is a server-assigned change counter the client pulls by.
+
+pub mod sync_record {
+    use sea_orm::entity::prelude::*;
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = "sync_record")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub entity: String,
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub record_id: String,
+        // JSON object text; None for tombstones.
+        pub data: Option<String>,
+        pub deleted: bool,
+        // Client-assigned stamp (epoch ms), used for last-writer-wins.
+        pub updated_at: i64,
+        pub seq: i64,
+    }
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+pub mod sync_meta {
+    use sea_orm::entity::prelude::*;
+
+    pub const SINGLETON_ID: &str = "sync";
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = "sync_meta")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub id: String,
+        // Random identity of this store; regenerated when the store is replaced
+        // so clients can detect that the server lost their data.
+        pub store_id: String,
+        // Last assigned `sync_record.seq`. Never derived from max(seq), so seqs
+        // stay monotonic even after records are replaced.
+        pub seq_counter: i64,
+    }
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+    impl ActiveModelBehavior for ActiveModel {}
+}

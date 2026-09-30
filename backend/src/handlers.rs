@@ -2,6 +2,7 @@ use crate::dto::*;
 use crate::error::AppResult;
 use crate::services::{admin, catalog, session};
 use crate::state::{build_state, StateResponse};
+use crate::sync::{self, AppConfig};
 use axum::extract::{Json, Path, State};
 use axum::http::{header, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
@@ -19,7 +20,7 @@ type Db = State<DatabaseConnection>;
 #[folder = "static/"]
 struct Assets;
 
-pub fn router(db: DatabaseConnection) -> Router {
+pub fn router(db: DatabaseConnection, config: AppConfig) -> Router {
     Router::new()
         .route("/api/state", get(get_state).put(import_state))
         .route("/api/partner", put(save_partner))
@@ -72,7 +73,9 @@ pub fn router(db: DatabaseConnection) -> Router {
             "/api/admin/restore-demo-routine",
             post(restore_demo_routine),
         )
-        .with_state(db)
+        .with_state(db.clone())
+        // Sync API for the iOS app (token-protected, JSON errors, own fallback).
+        .nest("/api/v2", sync::router(db, config))
         .fallback(static_handler)
         .layer(CorsLayer::permissive())
 }

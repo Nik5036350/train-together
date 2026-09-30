@@ -1,0 +1,963 @@
+[
+  {
+    "data": {
+      "allowCopyPartnerValues": true,
+      "coupleModeEnabled": true,
+      "defaultLoggingStyle": "alternate",
+      "defaultParticipants": "both",
+      "id": "app",
+      "showPartnerHistory": true
+    },
+    "deleted": false,
+    "entity": "settings",
+    "id": "app",
+    "seq": 1,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "active": true,
+      "color": "steel",
+      "id": "p_alex",
+      "initials": "A",
+      "isOwner": true,
+      "name": "Alex",
+      "unit": "kg"
+    },
+    "deleted": false,
+    "entity": "person",
+    "id": "p_alex",
+    "seq": 2,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "active": true,
+      "color": "red",
+      "id": "p_maria",
+      "initials": "M",
+      "isOwner": false,
+      "name": "Maria",
+      "unit": "kg"
+    },
+    "deleted": false,
+    "entity": "person",
+    "id": "p_maria",
+    "seq": 3,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "category": "Chest",
+      "defaultRestSeconds": 120,
+      "equipment": "Barbell",
+      "id": "ex_bench",
+      "name": "Bench Press",
+      "tracksDuration": false,
+      "tracksReps": true,
+      "tracksWeight": true
+    },
+    "deleted": false,
+    "entity": "exercise",
+    "id": "ex_bench",
+    "seq": 4,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "category": "Chest",
+      "defaultRestSeconds": 90,
+      "equipment": "Cable Machine",
+      "id": "ex_cablefly",
+      "name": "Cable Fly",
+      "tracksDuration": false,
+      "tracksReps": true,
+      "tracksWeight": true
+    },
+    "deleted": false,
+    "entity": "exercise",
+    "id": "ex_cablefly",
+    "seq": 5,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "category": "Triceps",
+      "defaultRestSeconds": 120,
+      "equipment": "Bodyweight",
+      "id": "ex_dip",
+      "name": "Weighted Dip",
+      "tracksDuration": false,
+      "tracksReps": true,
+      "tracksWeight": true
+    },
+    "deleted": false,
+    "entity": "exercise",
+    "id": "ex_dip",
+    "seq": 6,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "category": "Shoulders",
+      "defaultRestSeconds": 60,
+      "equipment": "Cable Machine",
+      "id": "ex_facepull",
+      "name": "Face Pull",
+      "tracksDuration": false,
+      "tracksReps": true,
+      "tracksWeight": true
+    },
+    "deleted": false,
+    "entity": "exercise",
+    "id": "ex_facepull",
+    "seq": 7,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "category": "Chest",
+      "defaultRestSeconds": 120,
+      "equipment": "Dumbbell",
+      "id": "ex_incline",
+      "name": "Incline DB Press",
+      "tracksDuration": false,
+      "tracksReps": true,
+      "tracksWeight": true
+    },
+    "deleted": false,
+    "entity": "exercise",
+    "id": "ex_incline",
+    "seq": 8,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "category": "Chest",
+      "defaultRestSeconds": 90,
+      "equipment": "Machine",
+      "id": "ex_machinechest",
+      "name": "Machine Chest Press",
+      "tracksDuration": false,
+      "tracksReps": true,
+      "tracksWeight": true
+    },
+    "deleted": false,
+    "entity": "exercise",
+    "id": "ex_machinechest",
+    "seq": 9,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "category": "Core",
+      "defaultRestSeconds": 60,
+      "equipment": "Bodyweight",
+      "id": "ex_plank",
+      "name": "Plank",
+      "tracksDuration": true,
+      "tracksReps": false,
+      "tracksWeight": false
+    },
+    "deleted": false,
+    "entity": "exercise",
+    "id": "ex_plank",
+    "seq": 10,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "category": "Triceps",
+      "defaultRestSeconds": 90,
+      "equipment": "Cable Machine",
+      "id": "ex_pushdown",
+      "name": "Triceps Pushdown",
+      "tracksDuration": false,
+      "tracksReps": true,
+      "tracksWeight": true
+    },
+    "deleted": false,
+    "entity": "exercise",
+    "id": "ex_pushdown",
+    "seq": 11,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "cues": "",
+      "exerciseId": "ex_bench",
+      "id": "prof_p_alex__ex_bench",
+      "machineSetup": "",
+      "personId": "p_alex",
+      "restSeconds": 150
+    },
+    "deleted": false,
+    "entity": "person_exercise_profile",
+    "id": "prof_p_alex__ex_bench",
+    "seq": 12,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "cues": "",
+      "exerciseId": "ex_dip",
+      "id": "prof_p_alex__ex_dip",
+      "machineSetup": "",
+      "personId": "p_alex",
+      "restSeconds": 150
+    },
+    "deleted": false,
+    "entity": "person_exercise_profile",
+    "id": "prof_p_alex__ex_dip",
+    "seq": 13,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "cues": "",
+      "exerciseId": "ex_incline",
+      "id": "prof_p_alex__ex_incline",
+      "machineSetup": "",
+      "personId": "p_alex",
+      "restSeconds": 120
+    },
+    "deleted": false,
+    "entity": "person_exercise_profile",
+    "id": "prof_p_alex__ex_incline",
+    "seq": 14,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "cues": "",
+      "exerciseId": "ex_pushdown",
+      "id": "prof_p_alex__ex_pushdown",
+      "machineSetup": "",
+      "personId": "p_alex",
+      "restSeconds": 90
+    },
+    "deleted": false,
+    "entity": "person_exercise_profile",
+    "id": "prof_p_alex__ex_pushdown",
+    "seq": 15,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "cues": "",
+      "exerciseId": "ex_bench",
+      "id": "prof_p_maria__ex_bench",
+      "machineSetup": "",
+      "personId": "p_maria",
+      "restSeconds": 120
+    },
+    "deleted": false,
+    "entity": "person_exercise_profile",
+    "id": "prof_p_maria__ex_bench",
+    "seq": 16,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "cues": "",
+      "exerciseId": "ex_cablefly",
+      "id": "prof_p_maria__ex_cablefly",
+      "machineSetup": "",
+      "personId": "p_maria",
+      "restSeconds": 90
+    },
+    "deleted": false,
+    "entity": "person_exercise_profile",
+    "id": "prof_p_maria__ex_cablefly",
+    "seq": 17,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "cues": "",
+      "exerciseId": "ex_incline",
+      "id": "prof_p_maria__ex_incline",
+      "machineSetup": "",
+      "personId": "p_maria",
+      "restSeconds": 90
+    },
+    "deleted": false,
+    "entity": "person_exercise_profile",
+    "id": "prof_p_maria__ex_incline",
+    "seq": 18,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "cues": "",
+      "exerciseId": "ex_pushdown",
+      "id": "prof_p_maria__ex_pushdown",
+      "machineSetup": "Rope attachment",
+      "personId": "p_maria",
+      "restSeconds": 90
+    },
+    "deleted": false,
+    "entity": "person_exercise_profile",
+    "id": "prof_p_maria__ex_pushdown",
+    "seq": 19,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "defaultMode": "alternate",
+      "id": "t_push",
+      "name": "Push Day"
+    },
+    "deleted": false,
+    "entity": "template",
+    "id": "t_push",
+    "seq": 20,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "assignment": "both",
+      "defaultLoggingMode": null,
+      "exerciseId": "ex_bench",
+      "id": "tex_t_push_0",
+      "orderIndex": 0,
+      "templateId": "t_push"
+    },
+    "deleted": false,
+    "entity": "template_exercise",
+    "id": "tex_t_push_0",
+    "seq": 21,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "assignment": "both",
+      "defaultLoggingMode": null,
+      "exerciseId": "ex_incline",
+      "id": "tex_t_push_1",
+      "orderIndex": 1,
+      "templateId": "t_push"
+    },
+    "deleted": false,
+    "entity": "template_exercise",
+    "id": "tex_t_push_1",
+    "seq": 22,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "assignment": "partner",
+      "defaultLoggingMode": null,
+      "exerciseId": "ex_cablefly",
+      "id": "tex_t_push_2",
+      "orderIndex": 2,
+      "templateId": "t_push"
+    },
+    "deleted": false,
+    "entity": "template_exercise",
+    "id": "tex_t_push_2",
+    "seq": 23,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "assignment": "owner",
+      "defaultLoggingMode": null,
+      "exerciseId": "ex_dip",
+      "id": "tex_t_push_3",
+      "orderIndex": 3,
+      "templateId": "t_push"
+    },
+    "deleted": false,
+    "entity": "template_exercise",
+    "id": "tex_t_push_3",
+    "seq": 24,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "assignment": "both",
+      "defaultLoggingMode": null,
+      "exerciseId": "ex_pushdown",
+      "id": "tex_t_push_4",
+      "orderIndex": 4,
+      "templateId": "t_push"
+    },
+    "deleted": false,
+    "entity": "template_exercise",
+    "id": "tex_t_push_4",
+    "seq": 25,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "endTime": 1782241920000,
+      "id": "sess_prev",
+      "label": "Mon",
+      "loggingStyle": "alternate",
+      "name": "Push Day",
+      "startTime": 1782237600000,
+      "status": "finished",
+      "templateId": "t_push"
+    },
+    "deleted": false,
+    "entity": "workout_session",
+    "id": "sess_prev",
+    "seq": 26,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "id": "spart_sess_prev_p_alex",
+      "orderIndex": 0,
+      "personId": "p_alex",
+      "sessionId": "sess_prev"
+    },
+    "deleted": false,
+    "entity": "session_participant",
+    "id": "spart_sess_prev_p_alex",
+    "seq": 27,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "id": "spart_sess_prev_p_maria",
+      "orderIndex": 1,
+      "personId": "p_maria",
+      "sessionId": "sess_prev"
+    },
+    "deleted": false,
+    "entity": "session_participant",
+    "id": "spart_sess_prev_p_maria",
+    "seq": 28,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_bench",
+      "id": "h1_ex_bench_p_alex_0",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 8,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 0,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 80.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_bench_p_alex_0",
+    "seq": 29,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_bench",
+      "id": "h1_ex_bench_p_maria_0",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 10,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 0,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 35.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_bench_p_maria_0",
+    "seq": 30,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_incline",
+      "id": "h1_ex_incline_p_alex_0",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 9,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 0,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 30.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_incline_p_alex_0",
+    "seq": 31,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_incline",
+      "id": "h1_ex_incline_p_maria_0",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 12,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 0,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 14.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_incline_p_maria_0",
+    "seq": 32,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_cablefly",
+      "id": "h1_ex_cablefly_p_maria_0",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 15,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 0,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 12.5
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_cablefly_p_maria_0",
+    "seq": 33,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_dip",
+      "id": "h1_ex_dip_p_alex_0",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 8,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 0,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 15.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_dip_p_alex_0",
+    "seq": 34,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_pushdown",
+      "id": "h1_ex_pushdown_p_alex_0",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 12,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 0,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 40.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_pushdown_p_alex_0",
+    "seq": 35,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_pushdown",
+      "id": "h1_ex_pushdown_p_maria_0",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 12,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 0,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 22.5
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_pushdown_p_maria_0",
+    "seq": 36,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_bench",
+      "id": "h1_ex_bench_p_alex_1",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 7,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 1,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 80.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_bench_p_alex_1",
+    "seq": 37,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_bench",
+      "id": "h1_ex_bench_p_maria_1",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 9,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 1,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 35.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_bench_p_maria_1",
+    "seq": 38,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_incline",
+      "id": "h1_ex_incline_p_alex_1",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 8,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 1,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 30.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_incline_p_alex_1",
+    "seq": 39,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_incline",
+      "id": "h1_ex_incline_p_maria_1",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 11,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 1,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 14.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_incline_p_maria_1",
+    "seq": 40,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_cablefly",
+      "id": "h1_ex_cablefly_p_maria_1",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 13,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 1,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 12.5
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_cablefly_p_maria_1",
+    "seq": 41,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_dip",
+      "id": "h1_ex_dip_p_alex_1",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 7,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 1,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 15.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_dip_p_alex_1",
+    "seq": 42,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_pushdown",
+      "id": "h1_ex_pushdown_p_alex_1",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 10,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 1,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 40.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_pushdown_p_alex_1",
+    "seq": 43,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_pushdown",
+      "id": "h1_ex_pushdown_p_maria_1",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 11,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 1,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 22.5
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_pushdown_p_maria_1",
+    "seq": 44,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_bench",
+      "id": "h1_ex_bench_p_alex_2",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 8,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 2,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 77.5
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_bench_p_alex_2",
+    "seq": 45,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_bench",
+      "id": "h1_ex_bench_p_maria_2",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 8,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 2,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 35.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_bench_p_maria_2",
+    "seq": 46,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_incline",
+      "id": "h1_ex_incline_p_alex_2",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 10,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 2,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 28.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_incline_p_alex_2",
+    "seq": 47,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_incline",
+      "id": "h1_ex_incline_p_maria_2",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 10,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 2,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 14.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_incline_p_maria_2",
+    "seq": 48,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_cablefly",
+      "id": "h1_ex_cablefly_p_maria_2",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 12,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 2,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 12.5
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_cablefly_p_maria_2",
+    "seq": 49,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_dip",
+      "id": "h1_ex_dip_p_alex_2",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 8,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 2,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 10.0
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_dip_p_alex_2",
+    "seq": 50,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_pushdown",
+      "id": "h1_ex_pushdown_p_alex_2",
+      "note": null,
+      "personId": "p_alex",
+      "reps": 11,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 2,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 37.5
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_pushdown_p_alex_2",
+    "seq": 51,
+    "updatedAt": 1
+  },
+  {
+    "data": {
+      "duration": null,
+      "exerciseId": "ex_pushdown",
+      "id": "h1_ex_pushdown_p_maria_2",
+      "note": null,
+      "personId": "p_maria",
+      "reps": 10,
+      "sessionExerciseId": null,
+      "sessionId": "sess_prev",
+      "setIndex": 2,
+      "setType": "working",
+      "timestamp": null,
+      "variant": "normal",
+      "weight": 22.5
+    },
+    "deleted": false,
+    "entity": "set_entry",
+    "id": "h1_ex_pushdown_p_maria_2",
+    "seq": 52,
+    "updatedAt": 1
+  }
+]

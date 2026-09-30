@@ -34,6 +34,20 @@ Single-container build (frontend embedded in the Rust binary, served on 8080):
 docker compose up --build    # or: docker build -t train-together . && docker run -p 8080:8080 -v train-together-data:/app/data train-together
 ```
 
+## iOS app (`ios/`) — replacing the PWA
+
+A native SwiftUI app (iOS 26+) is being built on branch `ios-app` to replace the PWA. It is offline-first: data lives in on-device SQLite (GRDB), the workout rules run on the phone (`ios/Packages/TrainTogetherKit`, a port of `backend/src/services/`), and changes sync to the server's token-protected `/api/v2` (`backend/src/sync.rs`, a domain-agnostic record store). See `ios/README.md`.
+
+```bash
+cd ios && xcodegen generate                          # the .xcodeproj is generated, not checked in
+cd ios/Packages/TrainTogetherKit && swift test       # engine + sync tests, run on the Mac
+xcodebuild -project ios/TrainTogether.xcodeproj -scheme TrainTogether -destination 'platform=iOS Simulator,name=iPhone 18 Pro' build
+```
+
+- The sync contract is the camelCase JSON of the records in `ios/Packages/TrainTogetherKit/Sources/TrainTogetherCore/Records.swift`; `backend/src/legacy_import.rs` emits the same shapes, pinned by `backend/tests/fixtures/seed-records.json` (regenerate with `UPDATE_FIXTURES=1 cargo test legacy_import_matches_golden_fixture`). Change both sides together.
+- `SYNC_TOKEN` (≥ 32 chars) enables `/api/v2`; without it those routes answer 503. Production sits behind Cloudflare Access with a bypass on `/api/v2/*`.
+- The legacy API and `frontend/` stay until the data cutover is confirmed; don't remove them before that.
+
 ## Architecture: thin client, full-state responses
 
 The core contract of the whole app: **the backend owns all business logic, and every mutating endpoint returns the complete aggregate state** (`StateResponse` in `backend/src/state.rs`). The frontend never computes state transitions — it replaces its entire cache with each response.

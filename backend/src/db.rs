@@ -35,6 +35,8 @@ pub async fn init_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     create!(session_exercise_person::Entity);
     create!(set_entry::Entity);
     create!(rest_timer::Entity);
+    create!(sync_record::Entity);
+    create!(sync_meta::Entity);
 
     // Columns added after the first release. `if_not_exists()` never alters an
     // existing table, so bring old database files up to date here; the constant
@@ -46,5 +48,10 @@ pub async fn init_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     ] {
         let _ = db.execute_unprepared(stmt).await;
     }
+
+    // Pulls page through `seq`; unique so a bug can never hand two records the
+    // same position in the change feed.
+    db.execute_unprepared("CREATE UNIQUE INDEX IF NOT EXISTS sync_record_seq ON sync_record(seq)")
+        .await?;
     Ok(())
 }

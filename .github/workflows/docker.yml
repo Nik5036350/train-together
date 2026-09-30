@@ -4,8 +4,12 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    # The iOS app and design assets aren't part of the server image; don't
+    # rebuild and roll out the server for commits that only touch them.
+    paths-ignore: ['ios/**', 'styleguide/**']
   pull_request:
     branches: [main]
+    paths-ignore: ['ios/**', 'styleguide/**']
   workflow_dispatch:
 
 concurrency:
