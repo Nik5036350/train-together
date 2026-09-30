@@ -4,8 +4,10 @@ mod entities;
 mod error;
 mod handlers;
 mod ids;
+mod legacy_import;
 mod services;
 mod state;
+mod sync;
 
 #[cfg(test)]
 mod tests;
@@ -25,7 +27,14 @@ async fn main() {
         .await
         .expect("failed to seed");
 
-    let app = handlers::router(db);
+    let config = sync::AppConfig::from_env();
+    if config.sync_token.is_none() {
+        println!(
+            "Sync API disabled: set SYNC_TOKEN (at least {} characters)",
+            sync::MIN_TOKEN_LEN
+        );
+    }
+    let app = handlers::router(db, config);
     let addr = "0.0.0.0:8080";
     let listener = tokio::net::TcpListener::bind(addr)
         .await
