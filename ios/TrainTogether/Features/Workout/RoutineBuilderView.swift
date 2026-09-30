@@ -137,8 +137,8 @@ struct RoutineBuilderView: View {
             ExercisePicker(
                 title: "Add exercise",
                 exclude: Set(routine.exercises.map(\.exerciseId))
-            ) { exercise in
-                model.perform("ADDING THE EXERCISE") { try $0.addTemplateExercise(templateId: templateId, exerciseId: exercise.id) }
+            ) { exerciseId in
+                model.perform("ADDING THE EXERCISE") { try $0.addTemplateExercise(templateId: templateId, exerciseId: exerciseId) }
             }
         }
     }
@@ -191,40 +191,53 @@ private struct RoutineExerciseRow: View {
     }
 }
 
-/// A searchable list of library exercises.
+/// A searchable list of library exercises, with a way to create a new one
+/// on the spot (the full editor, name taken from the search).
 struct ExercisePicker: View {
     let title: String
     var exclude: Set<String> = []
-    let onPick: (Exercise) -> Void
+    /// Called with the chosen (or just created) exercise's id.
+    let onPick: (String) -> Void
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
+    @State private var creating = false
 
     var body: some View {
         NavigationStack {
             let exercises = model.catalog.exercises.filter {
                 !exclude.contains($0.id) && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query))
             }
-            List(exercises) { exercise in
-                Button {
-                    onPick(exercise)
-                    dismiss()
-                } label: {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(exercise.name).font(Typeface.condensed(17)).textCase(.uppercase)
-                        Text([exercise.category, exercise.tracksSummary].filter { !$0.isEmpty }.joined(separator: " · "))
-                            .font(Typeface.body(13))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
+            let typed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            let exactMatch = model.catalog.exercises.contains { $0.name.compare(typed, options: .caseInsensitive) == .orderedSame }
+            List {
+                Button { creating = true } label: {
+                    Label(typed.isEmpty || exactMatch ? "New exercise" : "Create \u{201C}\(typed)\u{201D}", systemImage: "plus")
+                        .labelStyle(15)
+                        .foregroundStyle(Palette.redDark)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(Palette.canvas)
-            }
-            .overlay {
-                if exercises.isEmpty {
-                    ContentUnavailableView("No exercises", systemImage: "dumbbell", description: Text("Add them in Settings → Exercises."))
+                .accessibilityIdentifier("create-exercise")
+
+                ForEach(exercises) { exercise in
+                    Button {
+                        onPick(exercise.id)
+                        dismiss()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(exercise.name).font(Typeface.condensed(17)).textCase(.uppercase)
+                            Text([exercise.category, exercise.tracksSummary].filter { !$0.isEmpty }.joined(separator: " · "))
+                                .font(Typeface.body(13))
+                                .foregroundStyle(Palette.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(Palette.canvas)
                 }
             }
             .scrollContentBackground(.hidden)
@@ -234,6 +247,12 @@ struct ExercisePicker: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            }
+            .navigationDestination(isPresented: $creating) {
+                ExerciseEditorView(exerciseId: nil, initialName: exactMatch ? "" : typed) { id in
+                    onPick(id)
+                    dismiss()
+                }
             }
         }
         .presentationBackground(Palette.paper)

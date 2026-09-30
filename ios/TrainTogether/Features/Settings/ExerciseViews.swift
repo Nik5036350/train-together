@@ -71,6 +71,10 @@ struct DeleteExerciseDialog: ViewModifier {
 /// setup and cues.
 struct ExerciseEditorView: View {
     let exerciseId: String?
+    /// Name to start a new exercise with (e.g. the search that found nothing).
+    var initialName = ""
+    /// Called with the id after saving; without it the editor pops back.
+    var onSaved: ((String) -> Void)?
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var draft = ExerciseDraft(name: "")
@@ -148,6 +152,8 @@ struct ExerciseEditorView: View {
         let catalog = model.catalog
         if let exercise = catalog.exercise(exerciseId) {
             draft = ExerciseDraft(exercise)
+        } else {
+            draft.name = initialName
         }
         draft.profiles = catalog.pair.map { person in
             let profile = exerciseId.flatMap { catalog.profile(personId: person.id, exerciseId: $0) }
@@ -159,6 +165,8 @@ struct ExerciseEditorView: View {
     }
 
     private func save() {
-        if model.perform("SAVING THE EXERCISE", { try $0.saveExercise(draft) }) { dismiss() }
+        var savedID: String?
+        guard model.perform("SAVING THE EXERCISE", { savedID = try $0.saveExercise(draft) }), let savedID else { return }
+        if let onSaved { onSaved(savedID) } else { dismiss() }
     }
 }
