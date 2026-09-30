@@ -132,14 +132,66 @@ public struct ActiveSessionSnapshot: Equatable, Sendable {
         lastTimes[Self.lastTimeKey(cardId: cardId, personId: personId)]
     }
 
-    /// Values to pre-fill: this workout's last set for the variant, otherwise
-    /// the last set from the most recent finished workout.
-    public func defaultValues(cardId: String, personId: String) -> SetValues? {
+    /// What to pre-fill for the person's next set, and where it came from.
+    ///
+    /// Set N today starts from set N last time (so warm-up ramps don't have
+    /// to be retyped). A weight change made today carries forward: if today's
+    /// latest set was heavier or lighter than the same set last time, the
+    /// next set shifts by the same amount. Beyond last time's sets it repeats
+    /// today's latest set. Notes are never pre-filled.
+    public func prefill(cardId: String, personId: String) -> Prefill? {
         guard let card = card(cardId) else { return nil }
-        if let last = sets(cardId: cardId, personId: personId, variant: card.exercise.variant).last {
-            return last.values
+        let done = sets(cardId: cardId, personId: personId, variant: card.exercise.variant)
+        let previous = lastTime(cardId: cardId, personId: personId)?.sets ?? []
+        let next = done.count
+
+        guard next < previous.count else {
+            guard let latest = done.last else { return nil }
+            return Prefill(values: latest.values.withoutNote, source: .today(ordinal: done.count))
         }
-        return lastTime(cardId: cardId, personId: personId)?.sets.last?.values
+        var values = previous[next].values.withoutNote
+        var change: Double?
+        if next > 0, let today = done.last?.weight, let before = previous[next - 1].weight,
+           let target = values.weight, abs(today - before) > 0.001 {
+            change = today - before
+            values.weight = max(0, ((target + today - before) * 100).rounded() / 100)
+        }
+        return Prefill(values: values, source: .lastTime(setIndex: next, weightChange: change))
+    }
+
+    /// Values to pre-fill for the person's next set (see `prefill`).
+    public func defaultValues(cardId: String, personId: String) -> SetValues? {
+        prefill(cardId: cardId, personId: personId)?.values
+    }
+
+    /// What Repeat logs: the set just done today, or the pre-fill before the
+    /// first set.
+    public func repeatValues(cardId: String, personId: String) -> SetValues? {
+        guard let card = card(cardId) else { return nil }
+        if let latest = sets(cardId: cardId, personId: personId, variant: card.exercise.variant).last {
+            return latest.values.withoutNote
+        }
+        return defaultValues(cardId: cardId, personId: personId)
+    }
+}
+
+/// A pre-filled next set and its origin, for the logging card's caption.
+public struct Prefill: Equatable, Sendable {
+    public enum Source: Equatable, Sendable {
+        /// Last time's set at `setIndex` (0-based), shifted by today's weight
+        /// change when there is one.
+        case lastTime(setIndex: Int, weightChange: Double?)
+        /// Repeating today's set number `ordinal` (1-based).
+        case today(ordinal: Int)
+    }
+
+    public var values: SetValues
+    public var source: Source
+}
+
+extension SetValues {
+    var withoutNote: SetValues {
+        SetValues(weight: weight, reps: reps, duration: duration)
     }
 }
 

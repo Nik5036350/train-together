@@ -195,6 +195,8 @@ struct SetLedger<Menu: View>: View {
     let unit: WeightUnit
     var accent: Color = Palette.ink
     var muted = false
+    /// A row to point out (0-based), e.g. the set the next inputs came from.
+    var highlight: Int?
     var onEdit: ((SetEntry) -> Void)?
     var onSelect: ((SetEntry) -> Void)?
     @ViewBuilder var menu: (SetEntry) -> Menu
@@ -205,9 +207,11 @@ struct SetLedger<Menu: View>: View {
         let columns = (rows.map(\.text.count).max() ?? 0) > 11 ? 1 : 2
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: columns), spacing: 0) {
             ForEach(rows, id: \.set.id) { row in
+                let highlighted = row.index == highlight
                 SetLedgerRow(
                     ordinal: row.index + 1, text: row.text, hasNote: row.set.note != nil,
-                    accent: muted ? Palette.textSecondary : accent, muted: muted,
+                    accent: muted && !highlighted ? Palette.textSecondary : accent, muted: muted && !highlighted,
+                    highlighted: highlighted,
                     editable: onEdit != nil, fillOption: onSelect != nil && onEdit == nil,
                     divider: row.index >= columns
                 ) {
@@ -226,8 +230,8 @@ struct SetLedger<Menu: View>: View {
 
 extension SetLedger where Menu == EmptyView {
     init(sets: [SetEntry], exercise: Exercise?, unit: WeightUnit, accent: Color = Palette.ink, muted: Bool = false,
-         onEdit: ((SetEntry) -> Void)? = nil, onSelect: ((SetEntry) -> Void)? = nil) {
-        self.init(sets: sets, exercise: exercise, unit: unit, accent: accent, muted: muted,
+         highlight: Int? = nil, onEdit: ((SetEntry) -> Void)? = nil, onSelect: ((SetEntry) -> Void)? = nil) {
+        self.init(sets: sets, exercise: exercise, unit: unit, accent: accent, muted: muted, highlight: highlight,
                   onEdit: onEdit, onSelect: onSelect, menu: { _ in EmptyView() })
     }
 }
@@ -238,6 +242,7 @@ private struct SetLedgerRow: View {
     let hasNote: Bool
     let accent: Color
     let muted: Bool
+    var highlighted = false
     let editable: Bool
     let fillOption: Bool
     let divider: Bool
@@ -245,6 +250,7 @@ private struct SetLedgerRow: View {
 
     var body: some View {
         let content = HStack(spacing: 7) {
+            if highlighted { Icon(.arrowRight, size: 9).foregroundStyle(accent) }
             Text(Format.ordinal(ordinal))
                 .font(Typeface.display(fillOption ? 15 : 14, relativeTo: .footnote))
                 .monospacedDigit()

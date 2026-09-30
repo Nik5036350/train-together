@@ -446,10 +446,12 @@ import Testing
         let last = try #require(active.lastTime(cardId: active.cards[0].id, personId: "p_alex"))
         #expect(last.label == "Mon")
         #expect(last.sets.map(\.reps) == [8, 7, 8])
-        #expect(active.defaultValues(cardId: active.cards[0].id, personId: "p_alex")?.weight == 77.5)
+        // Set 1 starts from last time's set 1 (80×8), not its final set.
+        #expect(active.defaultValues(cardId: active.cards[0].id, personId: "p_alex") == SetValues(weight: 80, reps: 8))
 
+        // 85 vs last time's 80: set 2 (80×7) carries the +5.
         try world.engine.logSet(sessionExerciseId: active.cards[0].id, personId: "p_alex", values: SetValues(weight: 85, reps: 5))
-        #expect(try world.active().defaultValues(cardId: active.cards[0].id, personId: "p_alex")?.weight == 85)
+        #expect(try world.active().defaultValues(cardId: active.cards[0].id, personId: "p_alex") == SetValues(weight: 85, reps: 7))
     }
 
     @Test func lastTimeIsPerVariantAndLabelledByWeekday() throws {
@@ -513,5 +515,88 @@ import Testing
         #expect(PersonColor(key: "purple") == .steel)
         #expect(PersonColor(key: "whatever") == .steel)
         #expect(PersonColor(key: "mustard") == .mustard)
+    }
+}
+
+@Suite struct SetBySetPrefill {
+    func log(_ world: World, _ card: String, _ person: String, _ w: Double?, _ r: Int?, duration: Int? = nil) throws {
+        try world.engine.logSet(sessionExerciseId: card, personId: person, values: SetValues(weight: w, reps: r, duration: duration, note: "x"))
+    }
+
+    @Test func followsLastTimeSetBySetAndCarriesWeightChanges() throws {
+        // Last time Alex benched 80×8, 80×7, 77.5×8.
+        let world = try World()
+        let card = try world.startPushDay(.independent).cards[0].id
+        func prefill() throws -> Prefill? { try world.active().prefill(cardId: card, personId: "p_alex") }
+
+        #expect(try prefill() == Prefill(values: SetValues(weight: 80, reps: 8), source: .lastTime(setIndex: 0, weightChange: nil)))
+        try log(world, card, "p_alex", 80, 8)
+        #expect(try prefill() == Prefill(values: SetValues(weight: 80, reps: 7), source: .lastTime(setIndex: 1, weightChange: nil)))
+        try log(world, card, "p_alex", 82.5, 7) // +2.5 on set 2
+        #expect(try prefill() == Prefill(values: SetValues(weight: 80, reps: 8), source: .lastTime(setIndex: 2, weightChange: 2.5)))
+        try log(world, card, "p_alex", 80, 8)
+        // Past last time's three sets: repeat today's latest (never its note).
+        #expect(try prefill() == Prefill(values: SetValues(weight: 80, reps: 8), source: .today(ordinal: 3)))
+    }
+
+    @Test func undoMovesThePrefillBack() throws {
+        let world = try World()
+        let card = try world.startPushDay(.independent).cards[0].id
+        let id = try world.engine.logSet(sessionExerciseId: card, personId: "p_alex", values: SetValues(weight: 80, reps: 8))
+        try world.engine.undoSet(id: id)
+        #expect(try world.active().defaultValues(cardId: card, personId: "p_alex") == SetValues(weight: 80, reps: 8))
+    }
+
+    @Test func withoutHistoryItRepeatsTodaysLatestSet() throws {
+        let world = try World()
+        let active = try world.startPushDay(.independent)
+        let card = active.cards[0].id
+        try world.engine.setVariant(sessionExerciseId: card, variant: .highReps)
+        #expect(try world.active().prefill(cardId: card, personId: "p_alex") == nil)
+        try log(world, card, "p_alex", 60, 15)
+        #expect(try world.active().prefill(cardId: card, personId: "p_alex") ==
+                Prefill(values: SetValues(weight: 60, reps: 15), source: .today(ordinal: 1)))
+    }
+
+    @Test func eachVariantFollowsItsOwnLastTime() throws {
+        let world = try World()
+        var active = try world.startPushDay(.independent)
+        try world.engine.setVariant(sessionExerciseId: active.cards[0].id, variant: .highReps)
+        try log(world, active.cards[0].id, "p_alex", 50, 15)
+        try log(world, active.cards[0].id, "p_alex", 50, 12)
+        try world.engine.finishSession(id: active.session.id)
+
+        world.clock.advance(seconds: 86_400)
+        active = try world.startPushDay(.independent)
+        let card = active.cards[0].id
+        #expect(try world.active().defaultValues(cardId: card, personId: "p_alex") == SetValues(weight: 80, reps: 8))
+        try world.engine.setVariant(sessionExerciseId: card, variant: .highReps)
+        #expect(try world.active().defaultValues(cardId: card, personId: "p_alex") == SetValues(weight: 50, reps: 15))
+    }
+
+    @Test func timedExercisesDoNotCarryWeight() throws {
+        let world = try World()
+        let active = try world.startPushDay(.independent)
+        let plank = try #require(try world.engine.addSessionExercise(sessionId: active.session.id, exerciseId: "ex_plank"))
+        try log(world, plank, "p_alex", nil, nil, duration: 60)
+        try log(world, plank, "p_alex", nil, nil, duration: 75)
+        try world.engine.finishSession(id: active.session.id)
+
+        world.clock.advance(seconds: 86_400)
+        let next = try world.startPushDay(.independent)
+        let card = try #require(try world.engine.addSessionExercise(sessionId: next.session.id, exerciseId: "ex_plank"))
+        try log(world, card, "p_alex", nil, nil, duration: 90)
+        #expect(try world.active().prefill(cardId: card, personId: "p_alex") ==
+                Prefill(values: SetValues(duration: 75), source: .lastTime(setIndex: 1, weightChange: nil)))
+    }
+
+    @Test func repeatLogsTheSetJustDone() throws {
+        let world = try World()
+        let card = try world.startPushDay(.independent).cards[0].id
+        #expect(try world.active().repeatValues(cardId: card, personId: "p_alex") == SetValues(weight: 80, reps: 8))
+        try log(world, card, "p_alex", 90, 3)
+        // The pre-fill moves on to last time's set 2 (+10); Repeat repeats 90×3.
+        #expect(try world.active().defaultValues(cardId: card, personId: "p_alex") == SetValues(weight: 90, reps: 7))
+        #expect(try world.active().repeatValues(cardId: card, personId: "p_alex") == SetValues(weight: 90, reps: 3))
     }
 }

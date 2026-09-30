@@ -81,6 +81,7 @@ struct LoggingCardView: View {
                             person: person, leading: leading, isActive: isActive, isTurns: isTurns,
                             other: people.first { $0.id != person.id }, card: card, active: active, catalog: catalog,
                             inputs: binding(for: person, card: card, active: active),
+                            edited: inputs[person.id] != nil,
                             onLog: { log(person, card: card, active: active, isTurns: isTurns, others: people) },
                             onRepeat: { repeatLast(person, card: card, active: active, isTurns: isTurns, others: people) },
                             onEdit: { sheet = .edit($0) },
@@ -188,18 +189,19 @@ struct LoggingCardView: View {
         guard model.perform("LOGGING THE SET", {
             setId = try $0.logSet(sessionExerciseId: card.id, personId: person.id, values: values.setValues)
         }) else { return }
-        inputs[person.id] = { var v = values; v.note = ""; return v }()
+        inputs[person.id] = nil // the next set re-derives its pre-fill
         logTick += 1
         confirm("Logged", person: person, values: values.setValues, card: card, setId: setId, isTurns: isTurns, others: others)
     }
 
     private func repeatLast(_ person: Person, card: ActiveSessionSnapshot.Card, active: ActiveSessionSnapshot, isTurns: Bool, others: [Person]) {
-        guard let values = active.defaultValues(cardId: card.id, personId: person.id) else { return }
-        let repeated = SetValues(weight: values.weight, reps: values.reps, duration: values.duration)
+        // Repeat the set just done today (or the pre-fill before the first set).
+        guard let repeated = active.repeatValues(cardId: card.id, personId: person.id) else { return }
         var setId: String?
         guard model.perform("REPEATING THE SET", {
             setId = try $0.logSet(sessionExerciseId: card.id, personId: person.id, values: repeated)
         }) else { return }
+        inputs[person.id] = nil
         logTick += 1
         confirm("Repeated", person: person, values: repeated, card: card, setId: setId, isTurns: isTurns, others: others)
     }
@@ -284,6 +286,8 @@ private struct ActiveRow: View {
     let active: ActiveSessionSnapshot
     let catalog: CatalogSnapshot
     @Binding var inputs: InputValues
+    /// The person changed the pre-filled values by hand.
+    let edited: Bool
     let onLog: () -> Void
     let onRepeat: () -> Void
     let onEdit: (SetEntry) -> Void
@@ -300,7 +304,9 @@ private struct ActiveRow: View {
         let timer = active.timers[person.id].flatMap { $0.sessionExerciseId == card.id ? $0 : nil }
         let profile = catalog.profile(personId: person.id, exerciseId: exerciseId)
         let substituted = card.row(for: person.id)?.substituteExerciseId != nil
-        let canRepeat = active.defaultValues(cardId: card.id, personId: person.id) != nil
+        let canRepeat = active.repeatValues(cardId: card.id, personId: person.id) != nil
+        let prefill = edited ? nil : active.prefill(cardId: card.id, personId: person.id)
+        let sourceRow: Int? = if case .lastTime(let index, _)? = prefill?.source { index } else { nil }
 
         HStack(spacing: 0) {
             if leading { IdentityBand(person: person, active: isActive, width: 32, leading: true) }
@@ -352,12 +358,16 @@ private struct ActiveRow: View {
                         if let last { Text("\(last.sets.count) \(last.sets.count == 1 ? "set" : "sets") · tap to fill").metaStyle() }
                     }
                     if let last {
-                        SetLedger(sets: last.sets, exercise: exercise, unit: person.unit, muted: true, onSelect: { set in
+                        SetLedger(sets: last.sets, exercise: exercise, unit: person.unit, accent: style.accent, muted: true,
+                                  highlight: sourceRow, onSelect: { set in
                             inputs = { var v = InputValues(set.values); v.note = inputs.note; return v }()
                         })
                     }
                 }
 
+                if let prefill {
+                    Text(Self.caption(prefill, unit: person.unit)).metaStyle(style.text, size: 10)
+                }
                 HStack(spacing: 10) {
                     if exercise?.tracksWeight ?? true {
                         ValueInput(label: person.unit.rawValue, value: $inputs.weight, step: 2.5, accent: style.accent, highlighted: isActive)
@@ -407,6 +417,19 @@ private struct ActiveRow: View {
         .contentShape(Rectangle())
         .onTapGesture { if !isActive { onActivate() } }
         .accessibilityAction(named: "Make it \(person.name)'s turn") { onActivate() }
+    }
+}
+
+extension ActiveRow {
+    /// "FROM LAST TIME · SET 02 +2.5 KG" / "REPEATING SET 04".
+    static func caption(_ prefill: Prefill, unit: WeightUnit) -> String {
+        switch prefill.source {
+        case .lastTime(let index, let change):
+            let carried = change.map { " \($0 > 0 ? "+" : "−")\(Format.trimNum(abs($0))) \(unit.rawValue)" } ?? ""
+            return "From last time · set \(Format.ordinal(index + 1))" + carried
+        case .today(let ordinal):
+            return "Repeating set \(Format.ordinal(ordinal))"
+        }
     }
 }
 

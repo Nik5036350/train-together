@@ -87,6 +87,7 @@ public final class WorkoutStore: Sendable {
                 .removeDuplicates()
                 .start(
                     in: reader,
+                    scheduling: .async(onQueue: .main),
                     onError: { continuation.finish(throwing: $0) },
                     onChange: { continuation.yield($0) }
                 )
