@@ -137,8 +137,8 @@ struct RoutineBuilderView: View {
             ExercisePicker(
                 title: "Add exercise",
                 exclude: Set(routine.exercises.map(\.exerciseId))
-            ) { exercise in
-                model.perform("ADDING THE EXERCISE") { try $0.addTemplateExercise(templateId: templateId, exerciseId: exercise.id) }
+            ) { exerciseId in
+                model.perform("ADDING THE EXERCISE") { try $0.addTemplateExercise(templateId: templateId, exerciseId: exerciseId) }
             }
         }
     }
@@ -170,6 +170,7 @@ private struct RoutineExerciseRow: View {
                 .font(Typeface.display(18))
                 .monospacedDigit()
                 .foregroundStyle(Palette.textSecondary)
+            ExerciseTile(catalog.exercise(row.exerciseId)?.resolvedIcon ?? .generic, size: 32)
             VStack(alignment: .leading, spacing: 3) {
                 Text(catalog.exercise(row.exerciseId)?.name ?? "Deleted exercise")
                     .font(Typeface.condensed(17))
@@ -188,54 +189,5 @@ private struct RoutineExerciseRow: View {
         case .both where people.count > 1: "Both of you"
         default: people.first.map { "\($0.name) only" } ?? "Nobody (no partner yet)"
         }
-    }
-}
-
-/// A searchable list of library exercises.
-struct ExercisePicker: View {
-    let title: String
-    var exclude: Set<String> = []
-    let onPick: (Exercise) -> Void
-    @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
-
-    var body: some View {
-        NavigationStack {
-            let exercises = model.catalog.exercises.filter {
-                !exclude.contains($0.id) && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query))
-            }
-            List(exercises) { exercise in
-                Button {
-                    onPick(exercise)
-                    dismiss()
-                } label: {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(exercise.name).font(Typeface.condensed(17)).textCase(.uppercase)
-                        Text([exercise.category, exercise.tracksSummary].filter { !$0.isEmpty }.joined(separator: " · "))
-                            .font(Typeface.body(13))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .listRowBackground(Palette.canvas)
-            }
-            .overlay {
-                if exercises.isEmpty {
-                    ContentUnavailableView("No exercises", systemImage: "dumbbell", description: Text("Add them in Settings → Exercises."))
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .paperBackground()
-            .searchable(text: $query)
-            .navigationTitle(title.uppercased())
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-            }
-        }
-        .presentationBackground(Palette.paper)
     }
 }

@@ -12,12 +12,15 @@ public struct ExerciseDraft: Sendable {
     public var tracksReps: Bool
     public var tracksDuration: Bool
     public var defaultRestSeconds: Int
+    /// The picked pictogram; nil follows the name.
+    public var icon: ExerciseIcon?
     public var profiles: [ProfileDraft]
 
     public init(
         id: String? = nil, name: String, category: String = "", equipment: String = "",
         tracksWeight: Bool = true, tracksReps: Bool = true, tracksDuration: Bool = false,
-        defaultRestSeconds: Int = Exercise.defaultRestSeconds, profiles: [ProfileDraft] = []
+        defaultRestSeconds: Int = Exercise.defaultRestSeconds, icon: ExerciseIcon? = nil,
+        profiles: [ProfileDraft] = []
     ) {
         self.id = id
         self.name = name
@@ -27,6 +30,7 @@ public struct ExerciseDraft: Sendable {
         self.tracksReps = tracksReps
         self.tracksDuration = tracksDuration
         self.defaultRestSeconds = defaultRestSeconds
+        self.icon = icon
         self.profiles = profiles
     }
 
@@ -35,8 +39,21 @@ public struct ExerciseDraft: Sendable {
             id: exercise.id, name: exercise.name, category: exercise.category,
             equipment: exercise.equipment, tracksWeight: exercise.tracksWeight,
             tracksReps: exercise.tracksReps, tracksDuration: exercise.tracksDuration,
-            defaultRestSeconds: exercise.defaultRestSeconds, profiles: profiles
+            defaultRestSeconds: exercise.defaultRestSeconds,
+            icon: exercise.icon.flatMap(ExerciseIcon.init(rawValue:)), profiles: profiles
         )
+    }
+}
+
+/// A person's sex and bodyweight, saved together. Passing nil for the
+/// whole profile leaves both unchanged; nil fields clear them.
+public struct BodyProfile: Sendable, Hashable {
+    public var sex: Sex?
+    public var bodyweight: Double?
+
+    public init(sex: Sex?, bodyweight: Double?) {
+        self.sex = sex
+        self.bodyweight = bodyweight.flatMap { $0 > 0 ? $0 : nil }
     }
 }
 
@@ -74,7 +91,9 @@ extension WorkoutEngine {
 
     /// Creates the partner, or updates the existing one.
     @discardableResult
-    public func savePartner(name: String, color: PersonColor, unit: WeightUnit, initials: String? = nil) throws -> String {
+    public func savePartner(
+        name: String, color: PersonColor, unit: WeightUnit, initials: String? = nil, body: BodyProfile? = nil
+    ) throws -> String {
         try write { db in
             let name = try requireName(name)
             var settings = try settings(db)
@@ -85,12 +104,17 @@ extension WorkoutEngine {
                 partner.color = color.rawValue
                 partner.unit = unit
                 partner.initials = initialsFor(name, initials)
+                if let body {
+                    partner.sex = body.sex
+                    partner.bodyweight = body.bodyweight
+                }
                 try partner.update(db)
                 return partner.id
             }
             let partner = Person(
                 id: newID(), name: name, initials: initialsFor(name, initials),
-                color: color.rawValue, unit: unit, isOwner: false
+                color: color.rawValue, unit: unit, isOwner: false,
+                sex: body?.sex, bodyweight: body?.bodyweight
             )
             try partner.insert(db)
             return partner.id
@@ -99,7 +123,7 @@ extension WorkoutEngine {
 
     public func updatePerson(
         id: String, name: String? = nil, color: PersonColor? = nil, unit: WeightUnit? = nil,
-        initials: String? = nil
+        initials: String? = nil, body: BodyProfile? = nil
     ) throws {
         try write { db in
             guard var person = try Person.fetchOne(db, key: id) else { throw EngineError.notFound("PERSON") }
@@ -107,6 +131,10 @@ extension WorkoutEngine {
             if let color { person.color = color.rawValue }
             if let unit { person.unit = unit }
             if let initials { person.initials = initialsFor(person.name, initials) }
+            if let body {
+                person.sex = body.sex
+                person.bodyweight = body.bodyweight
+            }
             try person.update(db)
         }
     }
@@ -149,7 +177,7 @@ extension WorkoutEngine {
                 id: draft.id ?? newID(), name: name, category: draft.category,
                 equipment: draft.equipment, tracksWeight: draft.tracksWeight,
                 tracksReps: draft.tracksReps, tracksDuration: draft.tracksDuration,
-                defaultRestSeconds: max(0, draft.defaultRestSeconds)
+                defaultRestSeconds: max(0, draft.defaultRestSeconds), icon: draft.icon?.rawValue
             )
             try exercise.save(db)
             for p in draft.profiles {
@@ -160,6 +188,22 @@ extension WorkoutEngine {
                 ).save(db)
             }
             return exercise.id
+        }
+    }
+
+    /// Adds a popular exercise to the library and returns its id. When the
+    /// library already has it (same id, or an exercise by one of its names),
+    /// returns that one and changes nothing.
+    @discardableResult
+    public func addPopularExercise(id: String) throws -> String {
+        guard let entry = PopularExercises.entry(id: id) else { throw EngineError.notFound("EXERCISE") }
+        return try write { db in
+            if let existing = try Exercise.fetchOne(db, key: entry.id) { return existing.id }
+            if let existing = try Exercise.fetchAll(db).first(where: { entry.matches(name: $0.name) }) {
+                return existing.id
+            }
+            try entry.exercise.insert(db)
+            return entry.id
         }
     }
 

@@ -20,7 +20,9 @@ final class WorkoutFlowTests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchEnvironment["TT_RESET"] = "1"
+        // Browse tests look at whatever data the app already has (used to
+        // rehearse upgrades); everything else starts from a clean phone.
+        if !name.contains("testBrowse") { app.launchEnvironment["TT_RESET"] = "1" }
         // No permission prompts mid-flow.
         app.launchArguments += ["-device.restAlerts", "NO", "-device.liveActivity", "NO"]
         app.launch()
@@ -86,6 +88,25 @@ final class WorkoutFlowTests: XCTestCase {
         XCTAssertTrue(text("Shared session").waitForExistence(timeout: 5))
         snapshot("11-workout-detail")
 
+        // Progress from a workout's exercise heading.
+        let progress = app.buttons["progress-ex_bench"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        progress.tap()
+        XCTAssertTrue(text("Records").waitForExistence(timeout: 5), "progress screen didn't open")
+        snapshot("11b-progress-from-detail")
+
+        // History → Exercises: the overview and the exercise list.
+        app.tabBars.buttons["History"].tap() // re-tap pops to the root
+        button("Exercises").tap()
+        let benchRow = app.descendants(matching: .any)["exercise-ex_bench"].firstMatch
+        XCTAssertTrue(benchRow.waitForExistence(timeout: 5), "exercise list is empty")
+        snapshot("11c-exercises")
+        benchRow.tap()
+        XCTAssertTrue(text("Records").waitForExistence(timeout: 5))
+        snapshot("11d-exercise-progress")
+        app.tabBars.buttons["History"].tap()
+        button("Workouts").tap()
+
         // Settings → sync shows everything uploaded.
         app.tabBars.buttons["Settings"].tap()
         snapshot("12-settings")
@@ -130,6 +151,33 @@ final class WorkoutFlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "Sets")).firstMatch.waitForExistence(timeout: 10))
         sleep(2) // the server column loads asynchronously
         snapshot("restore-03-data")
+    }
+
+    /// Walks the analytics on the data already on the phone, without
+    /// resetting — the second half of an upgrade rehearsal.
+    func testBrowseAnalytics() throws {
+        XCTAssertTrue(app.tabBars.buttons["History"].waitForExistence(timeout: 15), "no data on the phone")
+        app.tabBars.buttons["History"].tap()
+        button("Exercises").tap()
+        let first = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "exercise-")).firstMatch
+        snapshot("browse-01-overview")
+        // Rows below the (possibly tall) overview only exist once on screen.
+        for _ in 0..<5 where !first.exists { app.swipeUp() }
+        XCTAssertTrue(first.waitForExistence(timeout: 10))
+        snapshot("browse-02-exercises")
+        first.tap()
+        XCTAssertTrue(text("Records").waitForExistence(timeout: 5))
+        snapshot("browse-03-top-set")
+        let e1rm = app.buttons.matching(NSPredicate(format: "label ==[c] %@", "Est. 1RM")).firstMatch
+        if e1rm.exists && e1rm.isEnabled {
+            e1rm.tap()
+            snapshot("browse-04-e1rm")
+        }
+        let chart = app.otherElements.matching(NSPredicate(format: "label CONTAINS[c] %@", "Value")).firstMatch
+        if chart.exists { chart.tap() } else { app.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.55)).tap() }
+        snapshot("browse-05-selected")
+        app.swipeUp()
+        snapshot("browse-06-records")
     }
 
     // MARK: Helpers

@@ -11,6 +11,9 @@ struct LiveOverviewView: View {
     @Environment(AppModel.self) private var model
     @State private var finishing = false
     @State private var confirmDiscard = false
+    @State private var findingExercise = false
+    /// A card added from the exercise sheet, opened once the sheet is gone.
+    @State private var addedCard: String?
 
     var body: some View {
         if let active = model.active, active.session.id == sessionId {
@@ -65,8 +68,9 @@ struct LiveOverviewView: View {
                         SectionLabel("Optional exercises")
                         VStack(spacing: 0) {
                             ForEach(optional) { exercise in
-                                Button { add(exercise, to: active) } label: {
-                                    HStack {
+                                Button { add(exercise.id, to: active) } label: {
+                                    HStack(spacing: 12) {
+                                        ExerciseTile(exercise.resolvedIcon, size: 30)
                                         Text(exercise.name).font(Typeface.condensed(16)).textCase(.uppercase)
                                         Spacer()
                                         Icon(.plus, size: 12)
@@ -81,6 +85,16 @@ struct LiveOverviewView: View {
                             }
                         }
                     }
+                    Button { findingExercise = true } label: {
+                        Label("Find an exercise", systemImage: "magnifyingglass")
+                            .labelStyle(15)
+                            .foregroundStyle(Palette.redDark)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("find-exercise")
                 }
                 .padding(.horizontal, 18)
                 .padding(.bottom, 30)
@@ -111,6 +125,11 @@ struct LiveOverviewView: View {
         .sheet(isPresented: $finishing) {
             FinishSheet(active: active) { model.finishWorkout(sessionId) }
         }
+        .sheet(isPresented: $findingExercise, onDismiss: openAddedCard) {
+            ExercisePicker(title: "Add exercise", exclude: Set(active.cards.map(\.exercise.exerciseId))) { exerciseId in
+                addedCard = addCard(exerciseId, to: active)
+            }
+        }
         .confirmationDialog("Discard this workout?", isPresented: $confirmDiscard, titleVisibility: .visible) {
             Button("Discard workout", role: .destructive) { model.discardWorkout() }
         } message: {
@@ -134,12 +153,21 @@ struct LiveOverviewView: View {
         }
     }
 
-    private func add(_ exercise: Exercise, to active: ActiveSessionSnapshot) {
+    private func add(_ exerciseId: String, to active: ActiveSessionSnapshot) {
+        if let cardId = addCard(exerciseId, to: active) { path.append(cardId) }
+    }
+
+    private func addCard(_ exerciseId: String, to active: ActiveSessionSnapshot) -> String? {
         var cardId: String?
         let ok = model.perform("ADDING THE EXERCISE") {
-            cardId = try $0.addSessionExercise(sessionId: active.session.id, exerciseId: exercise.id)
+            cardId = try $0.addSessionExercise(sessionId: active.session.id, exerciseId: exerciseId)
         }
-        if ok, let cardId { path.append(cardId) }
+        return ok ? cardId : nil
+    }
+
+    private func openAddedCard() {
+        if let addedCard { path.append(addedCard) }
+        addedCard = nil
     }
 }
 
@@ -241,6 +269,7 @@ private struct CardRow: View {
                     .monospacedDigit()
                     .foregroundStyle(Palette.textSecondary)
             }
+            ExerciseTile(catalog.exercise(card.exercise.exerciseId)?.resolvedIcon ?? .generic, size: 32)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(catalog.exercise(card.exercise.exerciseId)?.name ?? "Exercise")

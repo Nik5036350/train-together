@@ -124,6 +124,10 @@ struct SubstituteSheet: View {
         let exercises = model.catalog.exercises.filter {
             $0.id != card.exercise.exerciseId && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query))
         }
+        // Popular exercises only once searching, so the list stays short.
+        let popular = query.isEmpty ? [] : PopularExercises.missing(from: model.catalog.exercises).filter { entry in
+            ([entry.name] + entry.aliases).contains { $0.localizedCaseInsensitiveContains(query) }
+        }
         SheetScaffold(title: "Substitute") {
             PersonPicker(people: people, selection: $personId)
             if current != nil {
@@ -137,17 +141,20 @@ struct SubstituteSheet: View {
             VStack(spacing: 0) {
                 ForEach(exercises) { exercise in
                     Button { pick(exercise.id) } label: {
-                        HStack {
-                            Text(exercise.name).font(Typeface.condensed(17)).textCase(.uppercase)
-                            Spacer()
-                            if exercise.id == current { Icon(.check, size: 12) }
-                        }
-                        .foregroundStyle(Palette.ink)
-                        .padding(.vertical, 12)
-                        .contentShape(Rectangle())
+                        row(exercise.resolvedIcon, exercise.name, checked: exercise.id == current)
                     }
                     .buttonStyle(.plain)
                     .overlay(alignment: .bottom) { Rectangle().fill(Palette.ruleSoft).frame(height: 1) }
+                }
+            }
+            if !popular.isEmpty {
+                SectionLabel("Popular")
+                VStack(spacing: 0) {
+                    ForEach(popular) { entry in
+                        Button { pickPopular(entry) } label: { row(entry.icon, entry.name, checked: false) }
+                            .buttonStyle(.plain)
+                            .overlay(alignment: .bottom) { Rectangle().fill(Palette.ruleSoft).frame(height: 1) }
+                    }
                 }
             }
         }
@@ -155,11 +162,30 @@ struct SubstituteSheet: View {
         .onAppear { personId = initialPerson }
     }
 
+    private func row(_ icon: ExerciseIcon, _ name: String, checked: Bool) -> some View {
+        HStack(spacing: 12) {
+            ExerciseTile(icon, size: 30)
+            Text(name).font(Typeface.condensed(17)).textCase(.uppercase)
+            Spacer()
+            if checked { Icon(.check, size: 12) }
+        }
+        .foregroundStyle(Palette.ink)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+    }
+
     private func pick(_ exerciseId: String?) {
         model.perform("SUBSTITUTING") {
             try $0.substituteExercise(sessionExerciseId: card.id, personId: personId, substituteExerciseId: exerciseId)
         }
         dismiss()
+    }
+
+    /// Adds the popular exercise to the library, then substitutes it.
+    private func pickPopular(_ entry: PopularExercise) {
+        var id: String?
+        guard model.perform("ADDING THE EXERCISE", { id = try $0.addPopularExercise(id: entry.id) }), let id else { return }
+        pick(id)
     }
 }
 

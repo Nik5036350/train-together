@@ -33,6 +33,26 @@ public final class WorkoutStore: Sendable {
         observe(Queries.pendingChanges)
     }
 
+    /// Exercise summaries and the training overview. `now` and `calendar`
+    /// fix "last 30 days" and week boundaries; re-subscribe when the day
+    /// changes.
+    public func observeAnalytics(now: Date = .now, calendar: Calendar = .current) -> AsyncThrowingStream<AnalyticsSnapshot, any Error> {
+        let ms = now.epochMilliseconds
+        return observe { db in try Queries.analytics(db, now: ms, calendar: calendar) }
+    }
+
+    public func observeExerciseProgress(exerciseId: String) -> AsyncThrowingStream<ExerciseProgress?, any Error> {
+        observe { db in try Queries.exerciseProgress(db, exerciseId: exerciseId) }
+    }
+
+    public func analytics(now: Date = .now, calendar: Calendar = .current) throws -> AnalyticsSnapshot {
+        try database.reader.read { db in try Queries.analytics(db, now: now.epochMilliseconds, calendar: calendar) }
+    }
+
+    public func exerciseProgress(exerciseId: String) throws -> ExerciseProgress? {
+        try database.reader.read { db in try Queries.exerciseProgress(db, exerciseId: exerciseId) }
+    }
+
     // MARK: One-shot reads
 
     public func appSnapshot() throws -> AppSnapshot {
@@ -67,6 +87,7 @@ public final class WorkoutStore: Sendable {
                 .removeDuplicates()
                 .start(
                     in: reader,
+                    scheduling: .async(onQueue: .main),
                     onError: { continuation.finish(throwing: $0) },
                     onChange: { continuation.yield($0) }
                 )

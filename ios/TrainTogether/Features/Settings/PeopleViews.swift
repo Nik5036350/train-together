@@ -10,6 +10,8 @@ struct PersonEditView: View {
     @State private var name = ""
     @State private var color: PersonColor = .steel
     @State private var unit: WeightUnit = .kg
+    @State private var sex: Sex?
+    @State private var bodyweight: Double?
 
     var body: some View {
         let catalog = model.catalog
@@ -18,6 +20,7 @@ struct PersonEditView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 PersonForm(name: $name, color: $color, unit: $unit, taken: other)
+                BodyProfileFields(sex: $sex, bodyweight: $bodyweight, unit: unit)
                 Button(person == nil ? "Save partner" : "Save changes", action: save)
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -32,6 +35,8 @@ struct PersonEditView: View {
                 name = person.name
                 color = person.personColor
                 unit = person.unit
+                sex = person.sex
+                bodyweight = person.bodyweight
             } else {
                 color = PersonColor.allCases.first { $0 != other?.personColor } ?? .steel
             }
@@ -40,13 +45,37 @@ struct PersonEditView: View {
 
     private func save() {
         let ok = model.perform("SAVING") { engine in
+            let body = BodyProfile(sex: sex, bodyweight: bodyweight)
             if let personId {
-                try engine.updatePerson(id: personId, name: name, color: color, unit: unit, initials: "")
+                try engine.updatePerson(id: personId, name: name, color: color, unit: unit, initials: "", body: body)
             } else {
-                try engine.savePartner(name: name, color: color, unit: unit)
+                try engine.savePartner(name: name, color: color, unit: unit, body: body)
             }
         }
         if ok { dismiss() }
+    }
+}
+
+/// Sex and bodyweight, used only for strength scores (the 1RM formula and
+/// DOTS). Optional, never inferred. Bodyweight is in the selected unit and
+/// isn't converted when the unit changes.
+struct BodyProfileFields: View {
+    @Binding var sex: Sex?
+    @Binding var bodyweight: Double?
+    let unit: WeightUnit
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionLabel("For strength scores")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Sex").metaStyle()
+                Segmented(options: [(Sex?.none, "Not set"), (.male, Sex.male.label), (.female, Sex.female.label)], selection: $sex)
+            }
+            ValueInput(label: "Bodyweight · \(unit.rawValue)", value: $bodyweight, step: 0.5)
+            Text("Picks the 1RM formula (Epley or Brzycki) and powers the DOTS score that compares the two of you fairly.")
+                .font(Typeface.body(13))
+                .foregroundStyle(Palette.textSecondary)
+        }
     }
 }
 

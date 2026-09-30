@@ -13,12 +13,7 @@ struct ExerciseLibraryView: View {
         List {
             ForEach(exercises) { exercise in
                 NavigationLink(value: SettingsRoute.exercise(exercise.id)) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(exercise.name).font(Typeface.condensed(17)).textCase(.uppercase)
-                        Text([exercise.category, exercise.tracksSummary].filter { !$0.isEmpty }.joined(separator: " · "))
-                            .font(Typeface.body(13))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
+                    ExerciseRowLabel(exercise)
                 }
                 .listRowBackground(Palette.canvas)
                 .swipeActions {
@@ -71,6 +66,10 @@ struct DeleteExerciseDialog: ViewModifier {
 /// setup and cues.
 struct ExerciseEditorView: View {
     let exerciseId: String?
+    /// Name to start a new exercise with (e.g. the search that found nothing).
+    var initialName = ""
+    /// Called with the id after saving; without it the editor pops back.
+    var onSaved: ((String) -> Void)?
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var draft = ExerciseDraft(name: "")
@@ -84,6 +83,13 @@ struct ExerciseEditorView: View {
                 TextField("Name", text: $draft.name).font(Typeface.condensed(20))
                 TextField("Category (e.g. Chest)", text: $draft.category)
                 TextField("Equipment (e.g. Barbell)", text: $draft.equipment)
+            }
+            Section {
+                IconPicker(selection: $draft.icon, suggested: .suggested(for: draft.name))
+            } header: {
+                Text("Icon")
+            } footer: {
+                Text(draft.icon == nil ? "Follows the name." : "Picked. Tap it again to follow the name.")
             }
             Section {
                 Toggle("Weight", isOn: $draft.tracksWeight)
@@ -100,21 +106,25 @@ struct ExerciseEditorView: View {
                 }
             }
             ForEach(people) { person in
-                Section {
-                    let index = profileIndex(person.id)
-                    Toggle("Own rest time", isOn: Binding(
-                        get: { draft.profiles[index].restSeconds != nil },
-                        set: { draft.profiles[index].restSeconds = $0 ? draft.defaultRestSeconds : nil }
-                    ))
-                    if let rest = draft.profiles[index].restSeconds {
-                        Stepper(value: Binding(get: { rest }, set: { draft.profiles[index].restSeconds = $0 }), in: 0...900, step: 15) {
-                            LabeledContent("Rest", value: Format.duration(rest))
+                // The per-person drafts are filled in on appear; the first
+                // render happens before that, so only show a person's
+                // section once their draft exists.
+                if let index = draft.profiles.firstIndex(where: { $0.personId == person.id }) {
+                    Section {
+                        Toggle("Own rest time", isOn: Binding(
+                            get: { draft.profiles[index].restSeconds != nil },
+                            set: { draft.profiles[index].restSeconds = $0 ? draft.defaultRestSeconds : nil }
+                        ))
+                        if let rest = draft.profiles[index].restSeconds {
+                            Stepper(value: Binding(get: { rest }, set: { draft.profiles[index].restSeconds = $0 }), in: 0...900, step: 15) {
+                                LabeledContent("Rest", value: Format.duration(rest))
+                            }
                         }
+                        TextField("Machine setup (e.g. seat 4)", text: $draft.profiles[index].machineSetup)
+                        TextField("Cues (e.g. tuck elbows)", text: $draft.profiles[index].cues)
+                    } header: {
+                        Text(person.name).foregroundStyle(person.style.text)
                     }
-                    TextField("Machine setup (e.g. seat 4)", text: $draft.profiles[index].machineSetup)
-                    TextField("Cues (e.g. tuck elbows)", text: $draft.profiles[index].cues)
-                } header: {
-                    Text(person.name).foregroundStyle(person.style.text)
                 }
             }
             if let exerciseId, let exercise = model.catalog.exercise(exerciseId) {
@@ -138,16 +148,14 @@ struct ExerciseEditorView: View {
         .modifier(DeleteExerciseDialog(exercise: $deleting, onDeleted: { dismiss() }))
     }
 
-    private func profileIndex(_ personId: String) -> Int {
-        draft.profiles.firstIndex { $0.personId == personId } ?? 0
-    }
-
     private func load() {
         guard !loaded else { return }
         loaded = true
         let catalog = model.catalog
         if let exercise = catalog.exercise(exerciseId) {
             draft = ExerciseDraft(exercise)
+        } else {
+            draft.name = initialName
         }
         draft.profiles = catalog.pair.map { person in
             let profile = exerciseId.flatMap { catalog.profile(personId: person.id, exerciseId: $0) }
@@ -159,6 +167,36 @@ struct ExerciseEditorView: View {
     }
 
     private func save() {
-        if model.perform("SAVING THE EXERCISE", { try $0.saveExercise(draft) }) { dismiss() }
+        var savedID: String?
+        guard model.perform("SAVING THE EXERCISE", { savedID = try $0.saveExercise(draft) }), let savedID else { return }
+        if let onSaved { onSaved(savedID) } else { dismiss() }
+    }
+}
+
+/// Every pictogram in a grid. Nil selection follows the name: the suggested
+/// one shows as chosen until another is picked; tapping the picked one
+/// again goes back to following the name.
+private struct IconPicker: View {
+    @Binding var selection: ExerciseIcon?
+    let suggested: ExerciseIcon
+
+    var body: some View {
+        let shown = selection ?? suggested
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 46), spacing: 8)], spacing: 8) {
+            ForEach(ExerciseIcon.allCases, id: \.self) { icon in
+                let chosen = icon == shown
+                Button { selection = icon == selection ? nil : icon } label: {
+                    ExerciseGlyph(icon: icon, size: 30)
+                        .foregroundStyle(chosen ? Palette.paper : Palette.ink)
+                        .frame(width: 46, height: 46)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(chosen ? Palette.ink : Palette.canvas))
+                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(chosen ? Palette.ink : Palette.ruleSoft, lineWidth: Stroke.width))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(icon.label)
+                .accessibilityAddTraits(chosen ? .isSelected : [])
+            }
+        }
+        .padding(.vertical, 6)
     }
 }

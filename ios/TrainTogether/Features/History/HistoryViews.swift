@@ -2,8 +2,30 @@ import SwiftUI
 import TrainTogetherCore
 import TrainTogetherKit
 
-/// History as a training ledger (§26), newest first.
+/// The History tab: the workout ledger, or per-exercise analytics.
 struct HistoryListView: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var model = model
+        Group {
+            switch model.historyMode {
+            case .workouts: WorkoutLedgerView()
+            case .exercises: AnalyticsListView()
+            }
+        }
+        .navigationTitle("HISTORY")
+        .safeAreaBar(edge: .top) {
+            Segmented(options: [(HistoryMode.workouts, "Workouts"), (.exercises, "Exercises")], selection: $model.historyMode)
+                .accessibilityIdentifier("history-mode")
+                .padding(.horizontal, 18)
+                .padding(.bottom, 6)
+        }
+    }
+}
+
+/// History as a training ledger (§26), newest first.
+private struct WorkoutLedgerView: View {
     @Environment(AppModel.self) private var model
     @State private var items: [HistoryItem] = []
     @State private var deleting: HistoryItem?
@@ -30,7 +52,6 @@ struct HistoryListView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .paperBackground()
-        .navigationTitle("HISTORY")
         .task {
             do {
                 for try await value in model.store.observeHistory() { items = value }
@@ -182,7 +203,23 @@ struct WorkoutDetailView: View {
     private func exerciseBlock(_ exerciseId: String, detail: WorkoutDetail, people: [Person]) -> some View {
         let exercise = model.catalog.exercise(exerciseId)
         VStack(alignment: .leading, spacing: 8) {
-            SectionLabel(exercise?.name ?? "Deleted exercise")
+            SectionLabel(title: exercise?.name ?? "Deleted exercise") {
+                // Progress only for exercises still in the library.
+                if exercise != nil {
+                    Button {
+                        model.historyPath.append(.exercise(exerciseId, session: sessionId))
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text("Progress")
+                            Icon(.arrowRight, size: 11)
+                        }
+                        .labelStyle(13)
+                        .foregroundStyle(Palette.redDark)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("progress-\(exerciseId)")
+                }
+            }
             ForEach(people) { person in
                 let sets = detail.sets(exerciseId: exerciseId, personId: person.id)
                 let variants = Variant.allCases.filter { v in sets.contains { $0.variant == v } }
